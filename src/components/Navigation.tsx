@@ -6,7 +6,8 @@ import {
   UserPlus, 
   ClipboardList,
   Settings,
-  BarChart3
+  BarChart3,
+  Target
 } from "lucide-react";
 
 const navigationItems = [
@@ -16,9 +17,14 @@ const navigationItems = [
     icon: LayoutDashboard,
   },
   {
-    title: "Leads",
-    href: "/leads",
+    title: "Contatos",
+    href: "/contacts",
     icon: UserPlus,
+  },
+  {
+    title: "Negociações",
+    href: "/deals",
+    icon: Target,
   },
   {
     title: "Clientes",

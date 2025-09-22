@@ -7,7 +7,7 @@ import { CrmLayout } from "@/components/CrmLayout";
 import { Plus, Search, Filter, Mail, Phone, MapPin } from "lucide-react";
 
 // Dados mockados para demonstração
-const mockLeads = [
+const mockContacts = [
   {
     id: 1,
     name: "Maria Silva",
@@ -82,16 +82,16 @@ const getStatusLabel = (status: string) => {
   }
 };
 
-export default function Leads() {
+export default function Contacts() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const filteredLeads = mockLeads.filter(lead => {
-    const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         lead.company.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredContacts = mockContacts.filter(contact => {
+    const matchesSearch = contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         contact.company.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
+    const matchesStatus = statusFilter === "all" || contact.status === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
@@ -102,12 +102,12 @@ export default function Leads() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Leads</h1>
-            <p className="text-muted-foreground">Gerencie seus leads e oportunidades</p>
+            <h1 className="text-3xl font-bold text-foreground">Contatos</h1>
+            <p className="text-muted-foreground">Gerencie seus contatos e oportunidades</p>
           </div>
           <Button className="gap-2">
             <Plus className="h-4 w-4" />
-            Novo Lead
+            Novo Contato
           </Button>
         </div>
 
@@ -118,7 +118,7 @@ export default function Leads() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar leads..."
+                  placeholder="Buscar contatos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -159,18 +159,18 @@ export default function Leads() {
           </CardContent>
         </Card>
 
-        {/* Leads Grid */}
+        {/* Contacts Grid */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredLeads.map((lead) => (
-            <Card key={lead.id} className="shadow-soft hover:shadow-medium transition-all cursor-pointer">
+          {filteredContacts.map((contact) => (
+            <Card key={contact.id} className="shadow-soft hover:shadow-medium transition-all cursor-pointer">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div>
-                    <CardTitle className="text-lg">{lead.name}</CardTitle>
-                    <p className="text-sm text-muted-foreground">{lead.position} • {lead.company}</p>
+                    <CardTitle className="text-lg">{contact.name}</CardTitle>
+                    <p className="text-sm text-muted-foreground">{contact.position} • {contact.company}</p>
                   </div>
-                  <Badge className={getStatusColor(lead.status)}>
-                    {getStatusLabel(lead.status)}
+                  <Badge className={getStatusColor(contact.status)}>
+                    {getStatusLabel(contact.status)}
                   </Badge>
                 </div>
               </CardHeader>
@@ -179,30 +179,30 @@ export default function Leads() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-foreground">{lead.email}</span>
+                    <span className="text-foreground">{contact.email}</span>
                   </div>
                   
                   <div className="flex items-center gap-2 text-sm">
                     <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-foreground">{lead.phone}</span>
+                    <span className="text-foreground">{contact.phone}</span>
                   </div>
                   
                   <div className="flex items-center gap-2 text-sm">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-foreground">{lead.city}</span>
+                    <span className="text-foreground">{contact.city}</span>
                   </div>
                 </div>
                 
                 <div className="pt-2 border-t border-border">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Origem: {lead.source}</span>
-                    <span>{new Date(lead.createdAt).toLocaleDateString('pt-BR')}</span>
+                    <span>Origem: {contact.source}</span>
+                    <span>{new Date(contact.createdAt).toLocaleDateString('pt-BR')}</span>
                   </div>
                 </div>
                 
-                {lead.notes && (
+                {contact.notes && (
                   <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
-                    {lead.notes}
+                    {contact.notes}
                   </div>
                 )}
               </CardContent>
@@ -210,10 +210,10 @@ export default function Leads() {
           ))}
         </div>
 
-        {filteredLeads.length === 0 && (
+        {filteredContacts.length === 0 && (
           <Card className="shadow-soft">
             <CardContent className="text-center py-8">
-              <p className="text-muted-foreground">Nenhum lead encontrado com os filtros aplicados.</p>
+              <p className="text-muted-foreground">Nenhum contato encontrado com os filtros aplicados.</p>
             </CardContent>
           </Card>
         )}
