@@ -1,0 +1,88 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "contacts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "contacts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "contacts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "leadScore", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "deals",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "pipelineId", "order": "ASCENDING" },
+        { "fieldPath": "stageId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "deals",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "pipelineId", "order": "ASCENDING" },
+        { "fieldPath": "value", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "workflows",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "trigger.type", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "activities",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "entityType", "order": "ASCENDING" },
+        { "fieldPath": "entityId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "activities",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "type", "order": "ASCENDING" },
+        { "fieldPath": "completed", "order": "ASCENDING" },
+        { "fieldPath": "dueDate", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "workflow_enrollments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "workflowId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "startedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "workflow_enrollments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "completedAt", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
