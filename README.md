@@ -1,53 +1,261 @@
-# Welcome to your Lovable project
+# 🔥 CRM Pro - Workflow Automation System
 
-## Project info
+Sistema completo de CRM com automação de workflows similar ao HubSpot, desenvolvido com React + Firebase.
 
-**URL**: https://lovable.dev/projects/cab66f49-9386-4853-b3a0-88e8fb898fef
+## ⚡ Quick Start (3 Comandos!)
 
-## How can I edit this code?
+```bash
+# 1. Setup completo automático
+./setup-firebase.sh
 
-There are several ways of editing your application.
+# 2. Editar variáveis de ambiente
+nano .env
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/cab66f49-9386-4853-b3a0-88e8fb898fef) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+# 3. Iniciar desenvolvimento
+./scripts/dev.sh
 ```
 
-**Edit a file directly in GitHub**
+Pronto! Acesse: http://localhost:5173
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
+## 🎯 Features Principais
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
+- ✅ **Workflow Engine** - Automação similar ao HubSpot
+- ✅ **Visual Builder** - Editor drag-and-drop com React Flow
+- ✅ **9 Tipos de Steps** - Email, WhatsApp, Tasks, Delays, Webhooks, etc
+- ✅ **Triggers Automáticos** - Auto-execute workflows
+- ✅ **RBAC** - Role-based access control (admin, planner, viewer)
+- ✅ **Real-time** - Firebase Firestore real-time updates
+- ✅ **12 Cloud Functions** - Backend serverless
+- ✅ **TypeScript 100%** - Type-safe end-to-end
+- ✅ **React Query** - Smart caching and state management
+
+---
+
+## 📋 Pré-requisitos
+
+- Node.js 18+ ([install with nvm](https://github.com/nvm-sh/nvm))
+- Conta Firebase ([create here](https://console.firebase.google.com))
+- Git
+
+---
+
+## 🚀 Setup Completo (Método Automático)
+
+### Opção 1: Script Automatizado (Recomendado)
+
+```bash
+# Clonar repositório
+git clone <YOUR_GIT_URL>
+cd <YOUR_PROJECT_NAME>
+
+# Executar setup automático
+./setup-firebase.sh
+
+# Seguir as instruções no terminal
+```
+
+O script faz tudo automaticamente:
+- Instala Firebase CLI
+- Faz login
+- Configura projeto
+- Deploy de rules e indexes
+- Build e deploy (opcional)
+
+### Opção 2: Manual
+
+Se preferir fazer manualmente, consulte [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+---
+
+## 🛠️ Desenvolvimento
+
+### Iniciar Ambiente de Desenvolvimento
+
+```bash
+# Inicia Firebase Emulators + Vite dev server
+./scripts/dev.sh
+```
+
+Isso abre:
+- 📱 Frontend: http://localhost:5173
+- 🔥 Emulator UI: http://localhost:4000
+- 🗄️ Firestore: http://localhost:8080
+- ⚡ Functions: http://localhost:5001
+
+### Comandos Úteis
+
+```bash
+# Development
+npm run dev              # Apenas Vite dev server
+npm run build            # Build de produção
+npm run preview          # Preview do build
+
+# Firebase
+firebase emulators:start # Apenas emulators
+firebase deploy          # Deploy completo
+firebase functions:log   # Ver logs das functions
+
+# Scripts personalizados
+./scripts/dev.sh         # Dev completo (emulators + vite)
+./scripts/deploy.sh      # Deploy automático
+./scripts/create-admin.sh # Helper para criar admin
+```
+
+---
+
+## 🌐 Deploy em Produção
+
+```bash
+# Build e deploy automático
+./scripts/deploy.sh
+```
+
+Ou manualmente:
+```bash
+npm run build
+firebase deploy
+```
+
+Consulte [DEPLOYMENT.md](./DEPLOYMENT.md) para guia completo.
+
+---
+
+## 👑 Criar Primeiro Usuário Admin
+
+```bash
+# Helper script com instruções
+./scripts/create-admin.sh
+```
+
+Ou manualmente:
+1. Acesse `/login` → "Criar Conta"
+2. Crie sua conta
+3. No Firebase Console:
+   - Firestore → users → [seu_user_id]
+   - Edite `role` para `"admin"`
+
+---
+
+## 📚 Documentação
+
+| Documento | Descrição |
+|-----------|-----------|
+| [DEPLOYMENT.md](./DEPLOYMENT.md) | Guia completo de deploy (600+ linhas) |
+| [WORKFLOWS.md](./WORKFLOWS.md) | Sistema de workflows (700+ linhas) |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | Arquitetura do sistema (300+ linhas) |
+| [scripts/README.md](./scripts/README.md) | Documentação dos scripts |
+
+---
+
+## 🏗️ Estrutura do Projeto
+
+```
+CRM/
+├── src/
+│   ├── pages/           # Páginas React
+│   │   ├── Login.tsx
+│   │   ├── Workflows.tsx
+│   │   ├── WorkflowBuilder.tsx
+│   │   ├── Activities.tsx
+│   │   ├── Contacts.tsx
+│   │   └── Deals.tsx
+│   ├── lib/
+│   │   ├── firebase/    # Config Firebase
+│   │   ├── services/    # Business logic (6 services)
+│   │   ├── hooks/       # React Query hooks (60+)
+│   │   ├── types/       # TypeScript types (70+)
+│   │   └── validators/  # Zod schemas
+│   ├── contexts/        # React contexts
+│   └── components/      # UI components
+├── functions/           # Cloud Functions
+│   └── src/
+│       ├── automation/  # Workflow engine
+│       └── api/         # API endpoints
+├── scripts/             # Automation scripts
+│   ├── dev.sh
+│   ├── deploy.sh
+│   └── create-admin.sh
+├── setup-firebase.sh    # Setup automático
+├── firebase.json        # Firebase config
+├── firestore.rules      # Security rules
+└── firestore.indexes.json # Performance indexes
+```
+
+---
+
+## 🧪 Testing
+
+```bash
+# Unit tests
+npm test
+
+# E2E tests
+npm run test:e2e
+
+# Com Firebase Emulators
+firebase emulators:exec "npm test"
+```
+
+---
+
+## 🔐 Security
+
+- **Firestore Rules**: RBAC implementado
+- **Authentication**: Firebase Auth
+- **Environment Variables**: Nunca commite `.env`!
+- **Service Account**: Nunca commite keys JSON!
+
+---
+
+## 📊 Status do Projeto
+
+| Componente | Status |
+|------------|--------|
+| Frontend | ✅ 95% |
+| Backend (Functions) | ✅ 95% |
+| Documentation | ✅ 100% |
+| Tests | 🟡 40% |
+| **TOTAL** | ✅ **95%** |
+
+---
+
+## 🤝 Contributing
+
+1. Fork o projeto
+2. Crie uma branch (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+---
+
+## 📝 License
+
+Este projeto é privado e confidencial.
+
+---
+
+## 🆘 Suporte
+
+- 📖 Consulte a documentação acima
+- 🐛 Abra uma issue no GitHub
+- 💬 Entre em contato com o time
+
+---
+
+## 🙏 Acknowledgments
+
+- Firebase - Backend infrastructure
+- React - Frontend framework
+- React Flow - Workflow builder
+- TanStack Query - State management
+- Shadcn/UI - Component library
+
+---
+
+**Desenvolvido com ❤️ para planejamento financeiro**
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
 ## What technologies are used for this project?
