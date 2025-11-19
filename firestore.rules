@@ -1,0 +1,89 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isPlanner() {
+      return isAuthenticated() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'planner'];
+    }
+
+    function isOwner(ownerId) {
+      return isAuthenticated() && request.auth.uid == ownerId;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Contacts collection
+    match /contacts/{contactId} {
+      allow read: if isAuthenticated();
+      allow create: if isPlanner();
+      allow update: if isPlanner();
+      allow delete: if isAdmin();
+    }
+
+    // Deals collection
+    match /deals/{dealId} {
+      allow read: if isAuthenticated();
+      allow create: if isPlanner();
+      allow update: if isPlanner();
+      allow delete: if isAdmin();
+    }
+
+    // Workflows collection
+    match /workflows/{workflowId} {
+      allow read: if isAuthenticated();
+      allow write: if isPlanner();
+    }
+
+    // Activities collection
+    match /activities/{activityId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isPlanner();
+    }
+
+    // Pipelines collection
+    match /pipelines/{pipelineId} {
+      allow read: if isAuthenticated();
+      allow write: if isPlanner();
+    }
+
+    // Checklists collection
+    match /checklists/{checklistId} {
+      allow read: if isAuthenticated();
+      allow write: if isPlanner();
+    }
+
+    // Workflow enrollments
+    match /workflow_enrollments/{enrollmentId} {
+      allow read: if isAuthenticated();
+      allow create: if isPlanner();
+      allow update: if isPlanner();
+      allow delete: if isAdmin();
+    }
+
+    // Notifications (optional)
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+  }
+}
