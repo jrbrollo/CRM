@@ -75,13 +75,6 @@
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "startedAt", "order": "DESCENDING" }
       ]
-    },
-    {
-      "collectionGroup": "workflow_enrollments",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "completedAt", "order": "ASCENDING" }
-      ]
     }
   ],
   "fieldOverrides": []
