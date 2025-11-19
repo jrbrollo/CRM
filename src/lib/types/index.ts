@@ -22,3 +22,6 @@ export * from './activity.types';
 
 // Automation types
 export * from './automation.types';
+
+// Checklist types
+export * from './checklist.types';
