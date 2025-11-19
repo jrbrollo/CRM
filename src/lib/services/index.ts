@@ -16,3 +16,6 @@ export * as pipelineService from './pipelineService';
 
 // Checklist Service
 export * as checklistService from './checklistService';
+
+// Workflow Service
+export * as workflowService from './workflowService';

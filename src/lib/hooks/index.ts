@@ -16,3 +16,6 @@ export * from './usePipelines';
 
 // Checklist hooks
 export * from './useChecklists';
+
+// Workflow hooks
+export * from './useWorkflows';
