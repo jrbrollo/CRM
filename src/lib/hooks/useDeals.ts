@@ -307,3 +307,56 @@ export function useTransferDealOwnership() {
     },
   });
 }
+
+/**
+ * Hook to get deal statistics
+ */
+export function useDealStats(ownerId?: string) {
+  const filters: DealFilters = ownerId ? { ownerId } : {};
+
+  return useQuery({
+    queryKey: [...dealKeys.all, 'stats', ownerId],
+    queryFn: async () => {
+      const deals = await getDeals(filters, 1000);
+
+      const totalValue = deals.reduce((sum, d) => sum + (d.value || 0), 0);
+      const wonDeals = deals.filter(d => d.status === 'won');
+      const lostDeals = deals.filter(d => d.status === 'lost');
+      const openDeals = deals.filter(d => d.status === 'open');
+
+      const stats = {
+        total: deals.length,
+        totalValue,
+        byStatus: {
+          open: openDeals.length,
+          won: wonDeals.length,
+          lost: lostDeals.length,
+        },
+        value: {
+          open: openDeals.reduce((sum, d) => sum + (d.value || 0), 0),
+          won: wonDeals.reduce((sum, d) => sum + (d.value || 0), 0),
+          lost: lostDeals.reduce((sum, d) => sum + (d.value || 0), 0),
+        },
+        averageDealSize: totalValue / (deals.length || 1),
+        winRate: ((wonDeals.length / (wonDeals.length + lostDeals.length || 1)) * 100),
+        recent: {
+          last7Days: deals.filter(d => {
+            const created = new Date(d.createdAt);
+            const weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            return created >= weekAgo;
+          }).length,
+          last30Days: deals.filter(d => {
+            const created = new Date(d.createdAt);
+            const monthAgo = new Date();
+            monthAgo.setDate(monthAgo.getDate() - 30);
+            return created >= monthAgo;
+          }).length,
+        },
+      };
+
+      return stats;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}

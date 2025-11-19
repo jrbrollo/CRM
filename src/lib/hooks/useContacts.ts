@@ -287,3 +287,50 @@ export function useUnenrollFromWorkflow() {
     },
   });
 }
+
+/**
+ * Hook to get contact statistics
+ */
+export function useContactStats(ownerId?: string) {
+  const filters: ContactFilters = ownerId ? { ownerId } : {};
+
+  return useQuery({
+    queryKey: [...contactKeys.all, 'stats', ownerId],
+    queryFn: async () => {
+      const contacts = await getContacts(filters, 1000);
+
+      const stats = {
+        total: contacts.length,
+        byStatus: {
+          lead: contacts.filter(c => c.status === 'lead').length,
+          prospect: contacts.filter(c => c.status === 'prospect').length,
+          customer: contacts.filter(c => c.status === 'customer').length,
+          inactive: contacts.filter(c => c.status === 'inactive').length,
+        },
+        leadScore: {
+          hot: contacts.filter(c => (c.leadScore || 0) >= 80).length,
+          warm: contacts.filter(c => (c.leadScore || 0) >= 50 && (c.leadScore || 0) < 80).length,
+          cold: contacts.filter(c => (c.leadScore || 0) < 50).length,
+          average: contacts.reduce((sum, c) => sum + (c.leadScore || 0), 0) / (contacts.length || 1),
+        },
+        recent: {
+          last7Days: contacts.filter(c => {
+            const created = new Date(c.createdAt);
+            const weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            return created >= weekAgo;
+          }).length,
+          last30Days: contacts.filter(c => {
+            const created = new Date(c.createdAt);
+            const monthAgo = new Date();
+            monthAgo.setDate(monthAgo.getDate() - 30);
+            return created >= monthAgo;
+          }).length,
+        },
+      };
+
+      return stats;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}

@@ -399,3 +399,43 @@ export function useCreateTask() {
     },
   });
 }
+
+/**
+ * Hook to get activity statistics
+ */
+export function useActivityStats(ownerId?: string) {
+  const filters: ActivityFilters = ownerId ? { ownerId } : {};
+
+  return useQuery({
+    queryKey: [...activityKeys.all, 'stats', ownerId],
+    queryFn: async () => {
+      const activities = await getActivities(filters, 1000);
+
+      const stats = {
+        total: activities.length,
+        byType: {
+          note: activities.filter(a => a.type === 'note').length,
+          email: activities.filter(a => a.type === 'email').length,
+          call: activities.filter(a => a.type === 'call').length,
+          meeting: activities.filter(a => a.type === 'meeting').length,
+          task: activities.filter(a => a.type === 'task').length,
+        },
+        tasks: {
+          total: activities.filter(a => a.type === 'task').length,
+          completed: activities.filter(a => a.type === 'task' && a.completed).length,
+          pending: activities.filter(a => a.type === 'task' && !a.completed && !a.cancelled).length,
+          overdue: activities.filter(a =>
+            a.type === 'task' &&
+            !a.completed &&
+            !a.cancelled &&
+            a.dueDate &&
+            new Date(a.dueDate) < new Date()
+          ).length,
+        },
+      };
+
+      return stats;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
