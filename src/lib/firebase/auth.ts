@@ -40,12 +40,11 @@ export async function signUp(
     });
 
     // Create user document in Firestore
-    const userDoc: Omit<User, 'id' | 'createdAt' | 'updatedAt'> = {
+    const userDoc: any = {
       email,
       name: userData.name,
       role: userData.role,
       permissions: userData.permissions || [],
-      avatar: userData.avatar,
       preferences: {
         theme: 'light',
         notifications: true,
@@ -53,6 +52,11 @@ export async function signUp(
         ...userData.preferences,
       },
     };
+
+    // Only include avatar if it's defined
+    if (userData.avatar) {
+      userDoc.avatar = userData.avatar;
+    }
 
     await createDocument('users', {
       ...userDoc,
