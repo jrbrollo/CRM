@@ -1,13 +1,15 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { 
-  LayoutDashboard, 
-  Users, 
-  UserPlus, 
+import {
+  LayoutDashboard,
+  Users,
+  UserPlus,
   ClipboardList,
   Settings,
   BarChart3,
-  Target
+  Target,
+  Workflow,
+  Activity
 } from "lucide-react";
 
 const navigationItems = [
@@ -30,6 +32,16 @@ const navigationItems = [
     title: "Clientes",
     href: "/clients",
     icon: Users,
+  },
+  {
+    title: "Workflows",
+    href: "/workflows",
+    icon: Workflow,
+  },
+  {
+    title: "Atividades",
+    href: "/activities",
+    icon: Activity,
   },
   {
     title: "Formulários",
@@ -88,7 +100,7 @@ export function Navigation() {
       <div className="absolute bottom-4 left-4 right-4">
         <div className="rounded-lg bg-muted p-3">
           <p className="text-xs text-muted-foreground">
-            Conecte com Supabase e Stripe para funcionalidades completas
+            Configure Firebase em Settings para funcionalidades completas
           </p>
         </div>
       </div>
