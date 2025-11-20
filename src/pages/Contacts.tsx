@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { CrmLayout } from "@/components/CrmLayout";
 import { CreateContactDialog } from "@/components/contacts/CreateContactDialog";
+import { EditContactDialog } from "@/components/contacts/EditContactDialog";
 import { useContacts, useContactStats } from "@/lib/hooks/useContacts";
 import { Plus, Search, Mail, Phone, MapPin, UserPlus, Users, TrendingUp, Target } from "lucide-react";
-import type { ContactStatus } from "@/lib/types/contact.types";
+import type { ContactStatus, Contact } from "@/lib/types/contact.types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -43,6 +44,8 @@ export default function Contacts() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<ContactStatus | "all">("all");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
   const { data: contacts, isLoading } = useContacts();
   const { data: stats } = useContactStats();
@@ -85,6 +88,15 @@ export default function Contacts() {
           open={createDialogOpen}
           onOpenChange={setCreateDialogOpen}
         />
+
+        {/* Edit Contact Dialog */}
+        {selectedContact && (
+          <EditContactDialog
+            open={editDialogOpen}
+            onOpenChange={setEditDialogOpen}
+            contact={selectedContact}
+          />
+        )}
 
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-4">
@@ -195,6 +207,10 @@ export default function Contacts() {
               <Card
                 key={contact.id}
                 className="shadow-soft hover:shadow-medium transition-all cursor-pointer"
+                onClick={() => {
+                  setSelectedContact(contact);
+                  setEditDialogOpen(true);
+                }}
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">

@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CrmLayout } from "@/components/CrmLayout";
 import { CreateDealDialog } from "@/components/deals/CreateDealDialog";
+import { EditDealDialog } from "@/components/deals/EditDealDialog";
 import { CreatePipelineDialog } from "@/components/pipelines/CreatePipelineDialog";
 import { useDeals, useDealStats } from "@/lib/hooks/useDeals";
 import { usePipelines } from "@/lib/hooks/usePipelines";
+import type { Deal } from "@/lib/types/deal.types";
 import {
   Plus,
   Target,
@@ -30,6 +32,8 @@ export default function Deals() {
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createPipelineDialogOpen, setCreatePipelineDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
 
   const { data: pipelines, isLoading: loadingPipelines } = usePipelines();
   const { data: deals, isLoading: loadingDeals } = useDeals();
@@ -88,6 +92,15 @@ export default function Deals() {
           open={createPipelineDialogOpen}
           onOpenChange={setCreatePipelineDialogOpen}
         />
+
+        {/* Edit Deal Dialog */}
+        {selectedDeal && (
+          <EditDealDialog
+            open={editDialogOpen}
+            onOpenChange={setEditDialogOpen}
+            deal={selectedDeal}
+          />
+        )}
 
         {/* Stats Overview */}
         <div className="grid gap-4 md:grid-cols-4">
@@ -230,6 +243,10 @@ export default function Deals() {
                           <Card
                             key={deal.id}
                             className="shadow-soft hover:shadow-medium transition-all cursor-pointer"
+                            onClick={() => {
+                              setSelectedDeal(deal);
+                              setEditDialogOpen(true);
+                            }}
                           >
                             <CardContent className="p-4">
                               <div className="space-y-2">
