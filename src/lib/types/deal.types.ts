@@ -1,4 +1,5 @@
 import { Timestamp } from 'firebase/firestore';
+import type { BranchLocation, ContactPerson } from './customFields.types';
 
 /**
  * Deal status
@@ -27,10 +28,15 @@ export interface DealProduct {
  */
 export interface Deal {
   id: string;
-  name: string;
-  contactId: string;
-  amount: number;
-  currency: 'BRL';
+
+  // Basic info (legacy compatibility)
+  title?: string; // Legacy field
+  name?: string; // New field (same as title)
+
+  contactId?: string; // Legacy - may be empty if using contactPerson
+  amount?: number; // Legacy - same as value
+  value?: number; // Value in BRL
+  currency?: 'BRL';
 
   // Pipeline
   pipelineId: string;
@@ -50,40 +56,102 @@ export interface Deal {
   // Relacionamento
   ownerId: string;
 
-  // Produtos/Serviços
-  products: DealProduct[];
+  // Produtos/Serviços (optional)
+  products?: DealProduct[];
 
   // Notas
-  notes: string;
+  notes?: string;
+  description?: string; // Same as notes
 
-  // Campos customizados
-  customFields: Record<string, any>;
+  // Company
+  companyName?: string;
+
+  // Campos específicos para Planejamento Financeiro
+  sourceId?: string; // Reference to Source document
+  campaignId?: string; // Reference to Campaign document
+  contactPerson?: ContactPerson; // Dados completos da pessoa
+  isActiveClient?: boolean; // Se já é pagante (Sim/Não)
+  branch?: BranchLocation; // Filial Braúna
+
+  // Workflow tracking
+  lastActivityAt?: Timestamp; // Última atividade (ligação, email, nota, mudança de etapa)
+  lastContactAttemptAt?: Timestamp; // Última tentativa de contato
+  contactAttempts?: number; // Número de tentativas de contato
+  isStale?: boolean; // Deal parado (sem atividade há muito tempo)
+  staleSince?: Timestamp; // Desde quando está parado
+
+  // SLA tracking
+  slaViolations?: number; // Número de violações de SLA
+  lastSlaViolationAt?: Timestamp;
+
+  // Client status tracking
+  clientStatus?:
+    | 'lead' // Lead inicial
+    | 'qualified' // Lead qualificado
+    | 'in_analysis' // Em análise
+    | 'active_client' // Cliente ativo
+    | 'in_assembly' // Em montagem de planejamento
+    | 'satisfied_client' // Cliente satisfeito - planejamento entregue
+    | 'inactive'; // Cliente inativo
+
+  // Loss tracking
+  lostDate?: Timestamp;
+  lostBy?: string; // User ID de quem marcou como perdido
+
+  // Renda declarada (para assignment rules)
+  declaredIncome?: number;
+
+  // Previous deal tracking (para transições entre funis)
+  previousDealId?: string; // Se veio de outro funil
+  nextDealId?: string; // Se gerou deal em outro funil
+
+  // Campos customizados genéricos
+  customFields?: Record<string, any>;
 }
 
 /**
  * Input type for creating a deal
  */
 export interface CreateDealInput {
-  name: string;
-  contactId: string;
-  amount: number;
-  pipelineId: string;
-  stageId: string;
+  // Required fields
+  title: string; // Nome da negociação
+  pipelineId: string; // Funil
+  stageId: string; // Etapa do funil
+  ownerId: string; // Who created it
+
+  // Optional legacy compatibility
+  name?: string; // Same as title
+  contactId?: string; // Legacy - may be empty if using contactPerson
+  amount?: number; // Legacy - same as value
+  value?: number; // Valor estimado
+
+  // Campos específicos Braúna
+  sourceId?: string; // Fonte
+  campaignId?: string; // Campanha
+  contactPerson?: ContactPerson; // Dados da pessoa
+  isActiveClient?: boolean; // Já é pagante?
+  branch?: BranchLocation; // Filial Braúna
+
+  // Optional fields
   probability?: number;
   expectedCloseDate?: Date;
-  ownerId: string;
   products?: DealProduct[];
   notes?: string;
+  description?: string;
+  companyName?: string;
   customFields?: Record<string, any>;
+  status?: DealStatus;
 }
 
 /**
  * Input type for updating a deal
  */
 export interface UpdateDealInput {
+  title?: string;
   name?: string;
   contactId?: string;
   amount?: number;
+  value?: number;
   pipelineId?: string;
   stageId?: string;
   probability?: number;
@@ -94,6 +162,16 @@ export interface UpdateDealInput {
   ownerId?: string;
   products?: DealProduct[];
   notes?: string;
+  description?: string;
+  companyName?: string;
+
+  // Campos específicos Braúna
+  sourceId?: string;
+  campaignId?: string;
+  contactPerson?: ContactPerson;
+  isActiveClient?: boolean;
+  branch?: BranchLocation;
+
   customFields?: Record<string, any>;
 }
 

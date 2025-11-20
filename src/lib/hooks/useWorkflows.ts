@@ -1,125 +1,113 @@
 /**
  * Workflow Hooks
  *
- * React Query hooks for managing workflows and enrollments.
+ * React Query hooks for workflow management
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
-  getWorkflows,
-  getWorkflow,
-  getActiveWorkflows,
   createWorkflow,
+  createWorkflows,
+  getWorkflow,
+  getWorkflows,
+  getActiveWorkflows,
+  getWorkflowsByCategory,
   updateWorkflow,
+  toggleWorkflowActive,
   deleteWorkflow,
-  activateWorkflow,
-  pauseWorkflow,
-  getContactEnrollments,
-  getWorkflowEnrollments,
-  manuallyEnrollContact,
-  unenrollContactFromWorkflow,
+  deleteAllWorkflows,
 } from '../services/workflowService';
-import {
-  Workflow,
+import type {
   CreateWorkflowInput,
   UpdateWorkflowInput,
-} from '../types';
-import { toast } from 'sonner';
-
-// Query Keys
-export const workflowKeys = {
-  all: ['workflows'] as const,
-  lists: () => [...workflowKeys.all, 'list'] as const,
-  list: (status?: string) => [...workflowKeys.lists(), status] as const,
-  active: () => [...workflowKeys.all, 'active'] as const,
-  details: () => [...workflowKeys.all, 'detail'] as const,
-  detail: (id: string) => [...workflowKeys.details(), id] as const,
-  enrollments: () => [...workflowKeys.all, 'enrollments'] as const,
-  contactEnrollments: (contactId: string) =>
-    [...workflowKeys.enrollments(), 'contact', contactId] as const,
-  workflowEnrollments: (workflowId: string, status?: string) =>
-    [...workflowKeys.enrollments(), 'workflow', workflowId, status] as const,
-};
+  Workflow,
+} from '../types/workflow.types';
 
 /**
- * Hook to fetch all workflows
+ * Get all workflows
  */
-export function useWorkflows(status?: string) {
+export function useWorkflows() {
   return useQuery({
-    queryKey: workflowKeys.list(status),
-    queryFn: () => getWorkflows(status),
-    staleTime: 5 * 60 * 1000,
+    queryKey: ['workflows'],
+    queryFn: getWorkflows,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
 /**
- * Hook to fetch active workflows
+ * Get active workflows
  */
 export function useActiveWorkflows() {
   return useQuery({
-    queryKey: workflowKeys.active(),
+    queryKey: ['workflows', 'active'],
     queryFn: getActiveWorkflows,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+}
+
+/**
+ * Get workflows by category
+ */
+export function useWorkflowsByCategory(category: Workflow['category']) {
+  return useQuery({
+    queryKey: ['workflows', 'category', category],
+    queryFn: () => getWorkflowsByCategory(category),
     staleTime: 5 * 60 * 1000,
   });
 }
 
 /**
- * Hook to fetch a single workflow
+ * Get single workflow
  */
 export function useWorkflow(workflowId: string) {
   return useQuery({
-    queryKey: workflowKeys.detail(workflowId),
+    queryKey: ['workflows', workflowId],
     queryFn: () => getWorkflow(workflowId),
-    staleTime: 5 * 60 * 1000,
     enabled: !!workflowId,
   });
 }
 
 /**
- * Hook to get contact enrollments
- */
-export function useContactEnrollments(contactId: string) {
-  return useQuery({
-    queryKey: workflowKeys.contactEnrollments(contactId),
-    queryFn: () => getContactEnrollments(contactId),
-    staleTime: 2 * 60 * 1000,
-    enabled: !!contactId,
-  });
-}
-
-/**
- * Hook to get workflow enrollments
- */
-export function useWorkflowEnrollments(workflowId: string, status?: string) {
-  return useQuery({
-    queryKey: workflowKeys.workflowEnrollments(workflowId, status),
-    queryFn: () => getWorkflowEnrollments(workflowId, status),
-    staleTime: 2 * 60 * 1000,
-    enabled: !!workflowId,
-  });
-}
-
-/**
- * Hook to create a workflow
+ * Create workflow
  */
 export function useCreateWorkflow() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateWorkflowInput) => createWorkflow(data),
+    mutationFn: (input: CreateWorkflowInput) => createWorkflow(input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: workflowKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ['workflows'] });
       toast.success('Workflow criado com sucesso!');
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       console.error('Error creating workflow:', error);
-      toast.error(error.message || 'Erro ao criar workflow');
+      toast.error('Erro ao criar workflow');
     },
   });
 }
 
 /**
- * Hook to update a workflow
+ * Create multiple workflows
+ */
+export function useCreateWorkflows() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (inputs: CreateWorkflowInput[]) => createWorkflows(inputs),
+    onSuccess: (ids) => {
+      queryClient.invalidateQueries({ queryKey: ['workflows'] });
+      toast.success(`${ids.length} workflows criados com sucesso!`);
+    },
+    onError: (error) => {
+      console.error('Error creating workflows:', error);
+      toast.error('Erro ao criar workflows');
+    },
+  });
+}
+
+/**
+ * Update workflow
  */
 export function useUpdateWorkflow() {
   const queryClient = useQueryClient();
@@ -127,27 +115,48 @@ export function useUpdateWorkflow() {
   return useMutation({
     mutationFn: ({
       workflowId,
-      data,
+      updates,
     }: {
       workflowId: string;
-      data: UpdateWorkflowInput;
-    }) => updateWorkflow(workflowId, data),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: workflowKeys.detail(variables.workflowId),
-      });
-      queryClient.invalidateQueries({ queryKey: workflowKeys.lists() });
-      toast.success('Workflow atualizado com sucesso!');
+      updates: UpdateWorkflowInput;
+    }) => updateWorkflow(workflowId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workflows'] });
+      toast.success('Workflow atualizado!');
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       console.error('Error updating workflow:', error);
-      toast.error(error.message || 'Erro ao atualizar workflow');
+      toast.error('Erro ao atualizar workflow');
     },
   });
 }
 
 /**
- * Hook to delete a workflow
+ * Toggle workflow active status
+ */
+export function useToggleWorkflowActive() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ workflowId, isActive }: { workflowId: string; isActive: boolean }) =>
+      toggleWorkflowActive(workflowId, isActive),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['workflows'] });
+      toast.success(
+        variables.isActive
+          ? 'Workflow ativado!'
+          : 'Workflow desativado!'
+      );
+    },
+    onError: (error) => {
+      console.error('Error toggling workflow:', error);
+      toast.error('Erro ao alterar status do workflow');
+    },
+  });
+}
+
+/**
+ * Delete workflow
  */
 export function useDeleteWorkflow() {
   const queryClient = useQueryClient();
@@ -155,112 +164,31 @@ export function useDeleteWorkflow() {
   return useMutation({
     mutationFn: (workflowId: string) => deleteWorkflow(workflowId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: workflowKeys.lists() });
-      toast.success('Workflow deletado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['workflows'] });
+      toast.success('Workflow deletado!');
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       console.error('Error deleting workflow:', error);
-      toast.error(error.message || 'Erro ao deletar workflow');
+      toast.error('Erro ao deletar workflow');
     },
   });
 }
 
 /**
- * Hook to activate a workflow
+ * Delete all workflows (for reset)
  */
-export function useActivateWorkflow() {
+export function useDeleteAllWorkflows() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (workflowId: string) => activateWorkflow(workflowId),
-    onSuccess: (_, workflowId) => {
-      queryClient.invalidateQueries({
-        queryKey: workflowKeys.detail(workflowId),
-      });
-      queryClient.invalidateQueries({ queryKey: workflowKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: workflowKeys.active() });
-      toast.success('Workflow ativado!');
-    },
-    onError: (error: Error) => {
-      console.error('Error activating workflow:', error);
-      toast.error(error.message || 'Erro ao ativar workflow');
-    },
-  });
-}
-
-/**
- * Hook to pause a workflow
- */
-export function usePauseWorkflow() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (workflowId: string) => pauseWorkflow(workflowId),
-    onSuccess: (_, workflowId) => {
-      queryClient.invalidateQueries({
-        queryKey: workflowKeys.detail(workflowId),
-      });
-      queryClient.invalidateQueries({ queryKey: workflowKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: workflowKeys.active() });
-      toast.success('Workflow pausado');
-    },
-    onError: (error: Error) => {
-      console.error('Error pausing workflow:', error);
-      toast.error(error.message || 'Erro ao pausar workflow');
-    },
-  });
-}
-
-/**
- * Hook to manually enroll a contact
- */
-export function useManuallyEnrollContact() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      workflowId,
-      contactId,
-    }: {
-      workflowId: string;
-      contactId: string;
-    }) => manuallyEnrollContact(workflowId, contactId),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: workflowKeys.contactEnrollments(variables.contactId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: workflowKeys.workflowEnrollments(variables.workflowId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: workflowKeys.detail(variables.workflowId),
-      });
-      toast.success('Contato inscrito no workflow!');
-    },
-    onError: (error: Error) => {
-      console.error('Error enrolling contact:', error);
-      toast.error(error.message || 'Erro ao inscrever contato');
-    },
-  });
-}
-
-/**
- * Hook to unenroll a contact
- */
-export function useUnenrollContact() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (enrollmentId: string) =>
-      unenrollContactFromWorkflow(enrollmentId),
+    mutationFn: deleteAllWorkflows,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: workflowKeys.enrollments() });
-      queryClient.invalidateQueries({ queryKey: workflowKeys.lists() });
-      toast.success('Contato desinscrito do workflow');
+      queryClient.invalidateQueries({ queryKey: ['workflows'] });
+      toast.success('Todos os workflows foram deletados!');
     },
-    onError: (error: Error) => {
-      console.error('Error unenrolling contact:', error);
-      toast.error(error.message || 'Erro ao desinscrever contato');
+    onError: (error) => {
+      console.error('Error deleting all workflows:', error);
+      toast.error('Erro ao deletar workflows');
     },
   });
 }

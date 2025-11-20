@@ -1,35 +1,12 @@
 {
   "indexes": [
     {
-      "collectionGroup": "contacts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "contacts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "ownerId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "contacts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "leadScore", "order": "DESCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "deals",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "pipelineId", "order": "ASCENDING" },
         { "fieldPath": "stageId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
@@ -37,43 +14,69 @@
       "collectionGroup": "deals",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "pipelineId", "order": "ASCENDING" },
-        { "fieldPath": "value", "order": "DESCENDING" }
+        { "fieldPath": "ownerId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "deals",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "isStale", "order": "ASCENDING" },
+        { "fieldPath": "lastActivityAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "assignedTo", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "dueDate", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "dealId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "workflows",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "trigger.type", "order": "ASCENDING" }
+        { "fieldPath": "isActive", "order": "ASCENDING" },
+        { "fieldPath": "priority", "order": "DESCENDING" }
       ]
     },
     {
-      "collectionGroup": "activities",
+      "collectionGroup": "workflows",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "entityType", "order": "ASCENDING" },
-        { "fieldPath": "entityId", "order": "ASCENDING" },
+        { "fieldPath": "category", "order": "ASCENDING" },
+        { "fieldPath": "priority", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
-      "collectionGroup": "activities",
+      "collectionGroup": "plannerProfiles",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "type", "order": "ASCENDING" },
-        { "fieldPath": "completed", "order": "ASCENDING" },
-        { "fieldPath": "dueDate", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "workflow_enrollments",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "workflowId", "order": "ASCENDING" },
+        { "fieldPath": "teamId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "startedAt", "order": "DESCENDING" }
+        { "fieldPath": "availableForAssignment", "order": "ASCENDING" }
       ]
     }
   ],

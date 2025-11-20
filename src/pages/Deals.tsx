@@ -6,6 +6,7 @@ import { CrmLayout } from "@/components/CrmLayout";
 import { CreateDealDialog } from "@/components/deals/CreateDealDialog";
 import { EditDealDialog } from "@/components/deals/EditDealDialog";
 import { CreatePipelineDialog } from "@/components/pipelines/CreatePipelineDialog";
+import { BraunaSetupDialog } from "@/components/setup/BraunaSetupDialog";
 import { useDeals, useDealStats } from "@/lib/hooks/useDeals";
 import { usePipelines } from "@/lib/hooks/usePipelines";
 import type { Deal } from "@/lib/types/deal.types";
@@ -32,6 +33,7 @@ export default function Deals() {
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createPipelineDialogOpen, setCreatePipelineDialogOpen] = useState(false);
+  const [braunaSetupDialogOpen, setBraunaSetupDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
 
@@ -101,6 +103,12 @@ export default function Deals() {
             deal={selectedDeal}
           />
         )}
+
+        {/* Braúna Setup Dialog */}
+        <BraunaSetupDialog
+          open={braunaSetupDialogOpen}
+          onOpenChange={setBraunaSetupDialogOpen}
+        />
 
         {/* Stats Overview */}
         <div className="grid gap-4 md:grid-cols-4">
@@ -196,10 +204,20 @@ export default function Deals() {
               <p className="text-muted-foreground mb-4">
                 Crie seu primeiro pipeline para começar a gerenciar negociações
               </p>
-              <Button onClick={() => setCreatePipelineDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Criar Primeiro Pipeline
-              </Button>
+              <div className="flex gap-3 justify-center">
+                <Button
+                  onClick={() => setBraunaSetupDialogOpen(true)}
+                  size="lg"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                >
+                  <Target className="h-4 w-4 mr-2" />
+                  Configurar Pipelines Braúna
+                </Button>
+                <Button onClick={() => setCreatePipelineDialogOpen(true)} variant="outline">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Criar Pipeline Customizado
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ) : (
