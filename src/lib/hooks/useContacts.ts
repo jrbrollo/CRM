@@ -300,7 +300,8 @@ export function useContactStats(ownerId?: string) {
   return useQuery({
     queryKey: [...contactKeys.all, 'stats', ownerId],
     queryFn: async () => {
-      const contacts = await getContacts(filters, 1000);
+      const result = await getContacts(filters, 1000);
+      const contacts = result.contacts;
 
       const stats = {
         total: contacts.length,

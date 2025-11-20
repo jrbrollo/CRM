@@ -412,7 +412,8 @@ export function useActivityStats(ownerId?: string) {
   return useQuery({
     queryKey: [...activityKeys.all, 'stats', ownerId],
     queryFn: async () => {
-      const activities = await getActivities(filters, 1000);
+      const result = await getActivities(filters, 1000);
+      const activities = result.activities;
 
       const stats = {
         total: activities.length,

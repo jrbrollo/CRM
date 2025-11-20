@@ -320,7 +320,8 @@ export function useDealStats(ownerId?: string) {
   return useQuery({
     queryKey: [...dealKeys.all, 'stats', ownerId],
     queryFn: async () => {
-      const deals = await getDeals(filters, 1000);
+      const result = await getDeals(filters, 1000);
+      const deals = result.deals;
 
       const totalValue = deals.reduce((sum, d) => sum + (d.value || 0), 0);
       const wonDeals = deals.filter(d => d.status === 'won');
