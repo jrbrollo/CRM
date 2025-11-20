@@ -34,6 +34,13 @@ import {
   updateDealSchema,
   dealFiltersSchema,
 } from '../validators';
+import { getActiveWorkflows } from './workflowService';
+import {
+  handleDealCreated,
+  handleDealStageChanged,
+  handleDealWon,
+  handleDealLost,
+} from './workflowExecutionEngine';
 
 const COLLECTION_NAME = 'deals';
 
@@ -196,6 +203,11 @@ export async function createDeal(data: CreateDealInput): Promise<string> {
       products: validatedData.products || [],
       notes: validatedData.notes || '',
       customFields: validatedData.customFields || {},
+      lastActivityAt: serverTimestamp(), // Track activity
+      contactAttempts: 0,
+      isStale: false,
+      slaViolations: 0,
+      clientStatus: 'lead', // Initial status
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
@@ -203,6 +215,22 @@ export async function createDeal(data: CreateDealInput): Promise<string> {
     const docRef = await addDoc(collection(db, COLLECTION_NAME), dealData);
 
     console.log('✅ Deal created successfully:', docRef.id);
+
+    // Trigger workflows asynchronously
+    const dealId = docRef.id;
+    getDeal(dealId).then(async (deal) => {
+      if (deal) {
+        try {
+          const workflows = await getActiveWorkflows();
+          await handleDealCreated(deal, workflows);
+          console.log('🔄 Workflows triggered for new deal:', dealId);
+        } catch (error) {
+          console.error('Error triggering workflows for new deal:', error);
+          // Don't throw - deal was created successfully, workflows are async
+        }
+      }
+    });
+
     return docRef.id;
   } catch (error) {
     console.error('Error creating deal:', error);
@@ -248,8 +276,15 @@ export async function moveDealToStage(
   newProbability?: number
 ): Promise<void> {
   try {
+    // Get old deal data before update
+    const oldDeal = await getDeal(dealId);
+    if (!oldDeal) {
+      throw new Error('Deal not found');
+    }
+
     const updateData: any = {
       stageId: newStageId,
+      lastActivityAt: serverTimestamp(), // Track activity
       updatedAt: serverTimestamp(),
     };
 
@@ -261,6 +296,26 @@ export async function moveDealToStage(
     await updateDoc(docRef, updateData);
 
     console.log('✅ Deal moved to new stage:', dealId, '→', newStageId);
+
+    // Trigger workflows asynchronously if stage changed
+    if (oldDeal.stageId !== newStageId) {
+      getDeal(dealId).then(async (deal) => {
+        if (deal) {
+          try {
+            const workflows = await getActiveWorkflows();
+            await handleDealStageChanged(
+              deal,
+              oldDeal.stageId,
+              newStageId,
+              workflows
+            );
+            console.log('🔄 Stage change workflows triggered:', dealId);
+          } catch (error) {
+            console.error('Error triggering stage change workflows:', error);
+          }
+        }
+      });
+    }
   } catch (error) {
     console.error('Error moving deal to stage:', error);
     throw new Error('Erro ao mover negócio');
@@ -276,10 +331,24 @@ export async function markDealAsWon(dealId: string): Promise<void> {
     await updateDoc(docRef, {
       status: 'won',
       closedDate: serverTimestamp(),
+      lastActivityAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
 
     console.log('✅ Deal marked as won:', dealId);
+
+    // Trigger workflows asynchronously
+    getDeal(dealId).then(async (deal) => {
+      if (deal) {
+        try {
+          const workflows = await getActiveWorkflows();
+          await handleDealWon(deal, workflows);
+          console.log('🔄 Deal won workflows triggered:', dealId);
+        } catch (error) {
+          console.error('Error triggering deal won workflows:', error);
+        }
+      }
+    });
   } catch (error) {
     console.error('Error marking deal as won:', error);
     throw new Error('Erro ao marcar negócio como ganho');
@@ -298,11 +367,26 @@ export async function markDealAsLost(
     await updateDoc(docRef, {
       status: 'lost',
       lostReason: reason || '',
+      lostDate: serverTimestamp(),
       closedDate: serverTimestamp(),
+      lastActivityAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
 
     console.log('✅ Deal marked as lost:', dealId);
+
+    // Trigger workflows asynchronously
+    getDeal(dealId).then(async (deal) => {
+      if (deal) {
+        try {
+          const workflows = await getActiveWorkflows();
+          await handleDealLost(deal, workflows);
+          console.log('🔄 Deal lost workflows triggered:', dealId);
+        } catch (error) {
+          console.error('Error triggering deal lost workflows:', error);
+        }
+      }
+    });
   } catch (error) {
     console.error('Error marking deal as lost:', error);
     throw new Error('Erro ao marcar negócio como perdido');

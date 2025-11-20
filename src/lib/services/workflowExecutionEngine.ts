@@ -21,7 +21,7 @@ import { updateDeal as updateDealService } from './dealService';
 import { createNotification, sendBulkNotifications } from './notificationService';
 import { getNextPlannerRoundRobin, incrementSLAViolations } from './teamService';
 import { addDoc, collection } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db } from '../firebase/config';
 
 // ============================================================================
 // CONTEXT INTERFACES
