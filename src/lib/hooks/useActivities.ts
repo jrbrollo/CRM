@@ -60,7 +60,10 @@ export function useActivities(
 ) {
   return useQuery({
     queryKey: activityKeys.list(filters),
-    queryFn: () => getActivities(filters, pageLimit, startAfterDoc),
+    queryFn: async () => {
+      const result = await getActivities(filters, pageLimit, startAfterDoc);
+      return result.activities;
+    },
     staleTime: 3 * 60 * 1000, // 3 minutes
   });
 }

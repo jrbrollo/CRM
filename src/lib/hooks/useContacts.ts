@@ -49,7 +49,10 @@ export function useContacts(
 ) {
   return useQuery({
     queryKey: contactKeys.list(filters),
-    queryFn: () => getContacts(filters, pageLimit, startAfterDoc),
+    queryFn: async () => {
+      const result = await getContacts(filters, pageLimit, startAfterDoc);
+      return result.contacts;
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
   });

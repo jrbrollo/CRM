@@ -55,7 +55,10 @@ export function useDeals(
 ) {
   return useQuery({
     queryKey: dealKeys.list(filters),
-    queryFn: () => getDeals(filters, pageLimit, startAfterDoc),
+    queryFn: async () => {
+      const result = await getDeals(filters, pageLimit, startAfterDoc);
+      return result.deals;
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
