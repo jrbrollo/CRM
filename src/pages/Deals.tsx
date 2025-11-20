@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CrmLayout } from "@/components/CrmLayout";
 import { CreateDealDialog } from "@/components/deals/CreateDealDialog";
+import { CreatePipelineDialog } from "@/components/pipelines/CreatePipelineDialog";
 import { useDeals, useDealStats } from "@/lib/hooks/useDeals";
 import { usePipelines } from "@/lib/hooks/usePipelines";
 import {
@@ -28,6 +29,7 @@ const formatCurrency = (value: number) => {
 export default function Deals() {
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createPipelineDialogOpen, setCreatePipelineDialogOpen] = useState(false);
 
   const { data: pipelines, isLoading: loadingPipelines } = usePipelines();
   const { data: deals, isLoading: loadingDeals } = useDeals();
@@ -79,6 +81,12 @@ export default function Deals() {
         <CreateDealDialog
           open={createDialogOpen}
           onOpenChange={setCreateDialogOpen}
+        />
+
+        {/* Create Pipeline Dialog */}
+        <CreatePipelineDialog
+          open={createPipelineDialogOpen}
+          onOpenChange={setCreatePipelineDialogOpen}
         />
 
         {/* Stats Overview */}
@@ -175,7 +183,7 @@ export default function Deals() {
               <p className="text-muted-foreground mb-4">
                 Crie seu primeiro pipeline para começar a gerenciar negociações
               </p>
-              <Button>
+              <Button onClick={() => setCreatePipelineDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Criar Primeiro Pipeline
               </Button>
@@ -258,9 +266,7 @@ export default function Deals() {
                       <Button
                         variant="ghost"
                         className="w-full border-2 border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 text-muted-foreground hover:text-foreground"
-                        onClick={() =>
-                          console.log(`Add deal to stage: ${stage.id}`)
-                        }
+                        onClick={() => setCreateDialogOpen(true)}
                       >
                         <Plus className="h-4 w-4 mr-2" />
                         Adicionar Negociação
@@ -282,7 +288,7 @@ export default function Deals() {
                   <p className="text-muted-foreground mb-4">
                     Crie sua primeira negociação para começar
                   </p>
-                  <Button>
+                  <Button onClick={() => setCreateDialogOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Criar Primeira Negociação
                   </Button>
