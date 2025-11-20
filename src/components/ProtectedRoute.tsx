@@ -57,6 +57,13 @@ export function ProtectedRoute({
   }
 
   if (requirePlanner && !isPlanner()) {
+    // Debug log
+    console.log('ProtectedRoute: Access denied to planner-only route');
+    console.log('User:', user?.uid);
+    console.log('UserDoc:', userDoc);
+    console.log('UserDoc.role:', userDoc?.role);
+    console.log('isPlanner():', isPlanner());
+
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center max-w-md">
@@ -66,6 +73,9 @@ export function ProtectedRoute({
           </p>
           <p className="text-sm text-muted-foreground">
             Esta área é restrita a planejadores.
+          </p>
+          <p className="text-xs text-muted-foreground mt-4">
+            Debug: Role = {userDoc?.role || 'undefined'}
           </p>
         </div>
       </div>

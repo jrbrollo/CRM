@@ -10,6 +10,7 @@ import {
   getDoc,
   getDocs,
   addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   query,
@@ -169,6 +170,29 @@ export async function createDocument<T extends Partial<FirestoreDocument>>(
   } catch (error) {
     console.error(`Error creating document in ${collectionName}:`, error);
     throw new Error(`Failed to create document: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Set a document with a specific ID (creates or overwrites)
+ */
+export async function setDocument<T extends Partial<FirestoreDocument>>(
+  collectionName: string,
+  documentId: string,
+  data: T
+): Promise<void> {
+  try {
+    const docData = {
+      ...data,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
+    const docRef = doc(db, collectionName, documentId);
+    await setDoc(docRef, docData);
+  } catch (error) {
+    console.error(`Error setting document in ${collectionName}:`, error);
+    throw new Error(`Failed to set document: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
