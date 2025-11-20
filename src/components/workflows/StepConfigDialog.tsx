@@ -39,13 +39,10 @@ import type {
 } from '@/lib/types/workflow.types';
 
 // Schemas for different step types
-const delayConfigSchema = z.object({
-  delayType: z.enum(['duration', 'until_date', 'until_event']),
-  duration: z.object({
-    value: z.number().min(1),
-    unit: z.enum(['minutes', 'hours', 'days', 'weeks']),
-  }).optional(),
-  untilDate: z.string().optional(),
+const waitConfigSchema = z.object({
+  delayMinutes: z.number().min(1).optional(),
+  delayHours: z.number().min(1).optional(),
+  delayDays: z.number().min(1).optional(),
 });
 
 const emailConfigSchema = z.object({
@@ -58,16 +55,12 @@ const emailConfigSchema = z.object({
 const taskConfigSchema = z.object({
   taskTitle: z.string().min(1, 'Título da tarefa é obrigatório'),
   taskDescription: z.string().optional(),
-  assignToOwnerId: z.boolean().optional(),
-  taskDueIn: z.object({
-    value: z.number().min(1),
-    unit: z.enum(['days', 'weeks']),
-  }).optional(),
-});
-
-const updatePropertyConfigSchema = z.object({
-  propertyName: z.string().min(1, 'Nome da propriedade é obrigatório'),
-  propertyValue: z.string().min(1, 'Valor é obrigatório'),
+  taskType: z.enum(['call', 'email', 'meeting', 'follow_up', 'document', 'review', 'other']).optional(),
+  taskPriority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
+  taskDueInMinutes: z.number().min(1).optional(),
+  taskDueInHours: z.number().min(1).optional(),
+  taskDueInDays: z.number().min(1).optional(),
+  assignToUserId: z.string().optional(),
 });
 
 const whatsappConfigSchema = z.object({
@@ -78,6 +71,51 @@ const webhookConfigSchema = z.object({
   webhookUrl: z.string().url('URL inválida').min(1, 'URL é obrigatória'),
   webhookMethod: z.enum(['GET', 'POST']),
   webhookBody: z.string().optional(),
+});
+
+const assignRoundRobinConfigSchema = z.object({
+  assignToTeamId: z.string().optional(),
+});
+
+const createDealConfigSchema = z.object({
+  dealTitle: z.string().min(1, 'Título é obrigatório'),
+  dealPipelineId: z.string().min(1, 'Pipeline é obrigatório'),
+  dealStageId: z.string().min(1, 'Etapa é obrigatória'),
+  dealValue: z.number().min(0).optional(),
+  linkDeals: z.boolean().optional(),
+  copyFields: z.boolean().optional(),
+});
+
+const updateDealConfigSchema = z.object({
+  updateFields: z.string().min(1, 'Campos a atualizar (JSON) é obrigatório'),
+});
+
+const moveDealStageConfigSchema = z.object({
+  targetStageId: z.string().min(1, 'Etapa de destino é obrigatória'),
+});
+
+const sendNotificationConfigSchema = z.object({
+  notificationTitle: z.string().min(1, 'Título é obrigatório'),
+  notificationMessage: z.string().min(1, 'Mensagem é obrigatória'),
+  notificationType: z.enum(['task_assigned', 'task_overdue', 'deal_assigned', 'deal_won', 'deal_lost', 'sla_violation', 'team_alert', 'workflow_executed']).optional(),
+  notificationPriority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
+  notifyUserId: z.string().optional(),
+  notifyTeamLeader: z.boolean().optional(),
+});
+
+const incrementCounterConfigSchema = z.object({
+  counterField: z.string().min(1, 'Campo contador é obrigatório'),
+  incrementBy: z.number().min(1).optional(),
+});
+
+const trackSLAViolationConfigSchema = z.object({
+  violationType: z.string().optional(),
+  notifyLeader: z.boolean().optional(),
+});
+
+const logActivityConfigSchema = z.object({
+  activityType: z.string().min(1, 'Tipo de atividade é obrigatório'),
+  activityNotes: z.string().optional(),
 });
 
 interface StepConfigDialogProps {
@@ -100,18 +138,32 @@ export function StepConfigDialog({
   // Determine which schema to use
   const getSchema = () => {
     switch (stepType) {
-      case 'delay':
-        return delayConfigSchema;
+      case 'wait':
+        return waitConfigSchema;
       case 'send_email':
         return emailConfigSchema;
       case 'send_whatsapp':
         return whatsappConfigSchema;
       case 'create_task':
         return taskConfigSchema;
-      case 'update_property':
-        return updatePropertyConfigSchema;
       case 'webhook':
         return webhookConfigSchema;
+      case 'assign_round_robin':
+        return assignRoundRobinConfigSchema;
+      case 'create_deal':
+        return createDealConfigSchema;
+      case 'update_deal':
+        return updateDealConfigSchema;
+      case 'move_deal_stage':
+        return moveDealStageConfigSchema;
+      case 'send_notification':
+        return sendNotificationConfigSchema;
+      case 'increment_counter':
+        return incrementCounterConfigSchema;
+      case 'track_sla_violation':
+        return trackSLAViolationConfigSchema;
+      case 'log_activity':
+        return logActivityConfigSchema;
       default:
         return z.object({});
     }
@@ -143,68 +195,45 @@ export function StepConfigDialog({
     }
   };
 
-  const renderDelayConfig = () => {
-    const delayType = watch('delayType') || 'duration';
-
-    return (
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="delayType">Tipo de Espera</Label>
-          <Select value={delayType} onValueChange={(value) => setValue('delayType', value)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="duration">Duração Específica</SelectItem>
-              <SelectItem value="until_date">Até uma Data</SelectItem>
-              <SelectItem value="until_event">Até um Evento</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {delayType === 'duration' && (
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="duration.value">Quantidade</Label>
-              <Input
-                id="duration.value"
-                type="number"
-                min="1"
-                {...register('duration.value', { valueAsNumber: true })}
-              />
-              {errors.duration?.value && (
-                <p className="text-sm text-destructive">{errors.duration.value.message as string}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="duration.unit">Unidade</Label>
-              <Select
-                value={watch('duration.unit') || 'days'}
-                onValueChange={(value) => setValue('duration.unit', value as any)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="minutes">Minutos</SelectItem>
-                  <SelectItem value="hours">Horas</SelectItem>
-                  <SelectItem value="days">Dias</SelectItem>
-                  <SelectItem value="weeks">Semanas</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        )}
-
-        {delayType === 'until_date' && (
-          <div className="space-y-2">
-            <Label htmlFor="untilDate">Data</Label>
-            <Input id="untilDate" type="date" {...register('untilDate')} />
-          </div>
-        )}
+  const renderWaitConfig = () => (
+    <div className="space-y-4">
+      <div className="text-sm text-muted-foreground">
+        Configure quanto tempo aguardar antes do próximo passo. Preencha apenas um dos campos.
       </div>
-    );
-  };
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="delayMinutes">Minutos</Label>
+          <Input
+            id="delayMinutes"
+            type="number"
+            min="1"
+            placeholder="Ex: 30"
+            {...register('delayMinutes', { valueAsNumber: true })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="delayHours">Horas</Label>
+          <Input
+            id="delayHours"
+            type="number"
+            min="1"
+            placeholder="Ex: 24"
+            {...register('delayHours', { valueAsNumber: true })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="delayDays">Dias</Label>
+          <Input
+            id="delayDays"
+            type="number"
+            min="1"
+            placeholder="Ex: 7"
+            {...register('delayDays', { valueAsNumber: true })}
+          />
+        </div>
+      </div>
+    </div>
+  );
 
   const renderEmailConfig = () => (
     <div className="space-y-4">
@@ -267,7 +296,7 @@ export function StepConfigDialog({
         </Label>
         <Input
           id="taskTitle"
-          placeholder="Ex: Ligar para o lead"
+          placeholder="Ex: Primeiro Contato"
           {...register('taskTitle')}
         />
         {errors.taskTitle && (
@@ -287,62 +316,430 @@ export function StepConfigDialog({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="taskDueIn.value">Prazo (quantidade)</Label>
-          <Input
-            id="taskDueIn.value"
-            type="number"
-            min="1"
-            placeholder="Ex: 2"
-            {...register('taskDueIn.value', { valueAsNumber: true })}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="taskDueIn.unit">Prazo (unidade)</Label>
+          <Label htmlFor="taskType">Tipo</Label>
           <Select
-            value={watch('taskDueIn.unit') || 'days'}
-            onValueChange={(value) => setValue('taskDueIn.unit', value as any)}
+            value={watch('taskType') || 'call'}
+            onValueChange={(value: any) => setValue('taskType', value)}
           >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="days">Dias</SelectItem>
-              <SelectItem value="weeks">Semanas</SelectItem>
+              <SelectItem value="call">Ligação</SelectItem>
+              <SelectItem value="email">Email</SelectItem>
+              <SelectItem value="meeting">Reunião</SelectItem>
+              <SelectItem value="follow_up">Follow-up</SelectItem>
+              <SelectItem value="document">Documento</SelectItem>
+              <SelectItem value="review">Revisão</SelectItem>
+              <SelectItem value="other">Outro</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="taskPriority">Prioridade</Label>
+          <Select
+            value={watch('taskPriority') || 'medium'}
+            onValueChange={(value: any) => setValue('taskPriority', value)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">Baixa</SelectItem>
+              <SelectItem value="medium">Média</SelectItem>
+              <SelectItem value="high">Alta</SelectItem>
+              <SelectItem value="urgent">Urgente</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Prazo (preencha apenas um)</Label>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="taskDueInMinutes" className="text-xs">Minutos</Label>
+            <Input
+              id="taskDueInMinutes"
+              type="number"
+              min="1"
+              placeholder="30"
+              {...register('taskDueInMinutes', { valueAsNumber: true })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="taskDueInHours" className="text-xs">Horas</Label>
+            <Input
+              id="taskDueInHours"
+              type="number"
+              min="1"
+              placeholder="24"
+              {...register('taskDueInHours', { valueAsNumber: true })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="taskDueInDays" className="text-xs">Dias</Label>
+            <Input
+              id="taskDueInDays"
+              type="number"
+              min="1"
+              placeholder="7"
+              {...register('taskDueInDays', { valueAsNumber: true })}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="assignToUserId">Atribuir para (ID do usuário - opcional)</Label>
+        <Input
+          id="assignToUserId"
+          placeholder="Deixe vazio para atribuir ao dono do deal"
+          {...register('assignToUserId')}
+        />
+        <p className="text-xs text-muted-foreground">
+          Se vazio, será atribuído automaticamente ao dono do deal
+        </p>
+      </div>
+    </div>
+  );
+
+  const renderAssignRoundRobinConfig = () => (
+    <div className="space-y-4">
+      <div className="text-sm text-muted-foreground mb-4">
+        Atribui o deal para o próximo planejador disponível usando round-robin.
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="assignToTeamId">ID do Time (opcional)</Label>
+        <Input
+          id="assignToTeamId"
+          placeholder="Deixe vazio para usar o time padrão"
+          {...register('assignToTeamId')}
+        />
+        <p className="text-xs text-muted-foreground">
+          Se vazio, usará o time padrão da empresa
+        </p>
+      </div>
+    </div>
+  );
+
+  const renderCreateDealConfig = () => (
+    <div className="space-y-4">
+      <div className="text-sm text-muted-foreground mb-4">
+        Cria um novo deal em outro funil (usado para transições entre funis).
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="dealTitle">
+          Título do Deal <span className="text-destructive">*</span>
+        </Label>
+        <Input
+          id="dealTitle"
+          placeholder="Ex: {'{'}contactName{'}'} - Venda"
+          {...register('dealTitle')}
+        />
+        {errors.dealTitle && (
+          <p className="text-sm text-destructive">{errors.dealTitle.message as string}</p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="dealPipelineId">
+            ID do Pipeline <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="dealPipelineId"
+            placeholder="ID do pipeline de destino"
+            {...register('dealPipelineId')}
+          />
+          {errors.dealPipelineId && (
+            <p className="text-sm text-destructive">{errors.dealPipelineId.message as string}</p>
+          )}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="dealStageId">
+            ID da Etapa <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="dealStageId"
+            placeholder="ID da etapa inicial"
+            {...register('dealStageId')}
+          />
+          {errors.dealStageId && (
+            <p className="text-sm text-destructive">{errors.dealStageId.message as string}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="dealValue">Valor Estimado (opcional)</Label>
+        <Input
+          id="dealValue"
+          type="number"
+          min="0"
+          placeholder="Ex: 50000"
+          {...register('dealValue', { valueAsNumber: true })}
+        />
+      </div>
+
+      <div className="flex items-center gap-4">
+        <div className="flex items-center space-x-2">
+          <input
+            id="linkDeals"
+            type="checkbox"
+            {...register('linkDeals')}
+            className="rounded border-gray-300"
+          />
+          <Label htmlFor="linkDeals" className="text-sm font-normal">
+            Vincular deals (previousDealId/nextDealId)
+          </Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <input
+            id="copyFields"
+            type="checkbox"
+            {...register('copyFields')}
+            className="rounded border-gray-300"
+          />
+          <Label htmlFor="copyFields" className="text-sm font-normal">
+            Copiar campos do deal anterior
+          </Label>
         </div>
       </div>
     </div>
   );
 
-  const renderUpdatePropertyConfig = () => (
+  const renderUpdateDealConfig = () => (
     <div className="space-y-4">
+      <div className="text-sm text-muted-foreground mb-4">
+        Atualiza campos do deal. Use JSON válido com os campos a atualizar.
+      </div>
       <div className="space-y-2">
-        <Label htmlFor="propertyName">
-          Nome da Propriedade <span className="text-destructive">*</span>
+        <Label htmlFor="updateFields">
+          Campos (JSON) <span className="text-destructive">*</span>
+        </Label>
+        <Textarea
+          id="updateFields"
+          placeholder={'{"contactAttempts": 1, "lastContactAttemptAt": "now"}'}
+          rows={6}
+          {...register('updateFields')}
+        />
+        {errors.updateFields && (
+          <p className="text-sm text-destructive">{errors.updateFields.message as string}</p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Exemplo: {'{'}\"contactAttempts\": 1, \"isStale\": false{'}'}
+        </p>
+      </div>
+    </div>
+  );
+
+  const renderMoveDealStageConfig = () => (
+    <div className="space-y-4">
+      <div className="text-sm text-muted-foreground mb-4">
+        Move o deal para outra etapa do mesmo funil.
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="targetStageId">
+          ID da Etapa de Destino <span className="text-destructive">*</span>
         </Label>
         <Input
-          id="propertyName"
-          placeholder="Ex: status, leadScore"
-          {...register('propertyName')}
+          id="targetStageId"
+          placeholder="ID da etapa"
+          {...register('targetStageId')}
         />
-        {errors.propertyName && (
-          <p className="text-sm text-destructive">{errors.propertyName.message as string}</p>
+        {errors.targetStageId && (
+          <p className="text-sm text-destructive">{errors.targetStageId.message as string}</p>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderSendNotificationConfig = () => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="notificationTitle">
+          Título <span className="text-destructive">*</span>
+        </Label>
+        <Input
+          id="notificationTitle"
+          placeholder="Ex: Novo lead atribuído"
+          {...register('notificationTitle')}
+        />
+        {errors.notificationTitle && (
+          <p className="text-sm text-destructive">{errors.notificationTitle.message as string}</p>
         )}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="propertyValue">
-          Novo Valor <span className="text-destructive">*</span>
+        <Label htmlFor="notificationMessage">
+          Mensagem <span className="text-destructive">*</span>
+        </Label>
+        <Textarea
+          id="notificationMessage"
+          placeholder="Ex: Você recebeu um novo lead: {contactName}"
+          rows={4}
+          {...register('notificationMessage')}
+        />
+        {errors.notificationMessage && (
+          <p className="text-sm text-destructive">{errors.notificationMessage.message as string}</p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="notificationType">Tipo</Label>
+          <Select
+            value={watch('notificationType') || 'workflow_executed'}
+            onValueChange={(value: any) => setValue('notificationType', value)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="task_assigned">Tarefa Atribuída</SelectItem>
+              <SelectItem value="task_overdue">Tarefa Atrasada</SelectItem>
+              <SelectItem value="deal_assigned">Deal Atribuído</SelectItem>
+              <SelectItem value="deal_won">Deal Ganho</SelectItem>
+              <SelectItem value="deal_lost">Deal Perdido</SelectItem>
+              <SelectItem value="sla_violation">Violação de SLA</SelectItem>
+              <SelectItem value="team_alert">Alerta de Equipe</SelectItem>
+              <SelectItem value="workflow_executed">Workflow Executado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="notificationPriority">Prioridade</Label>
+          <Select
+            value={watch('notificationPriority') || 'medium'}
+            onValueChange={(value: any) => setValue('notificationPriority', value)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">Baixa</SelectItem>
+              <SelectItem value="medium">Média</SelectItem>
+              <SelectItem value="high">Alta</SelectItem>
+              <SelectItem value="urgent">Urgente</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="notifyUserId">Notificar Usuário (ID - opcional)</Label>
+        <Input
+          id="notifyUserId"
+          placeholder="Deixe vazio para notificar o dono do deal"
+          {...register('notifyUserId')}
+        />
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <input
+          id="notifyTeamLeader"
+          type="checkbox"
+          {...register('notifyTeamLeader')}
+          className="rounded border-gray-300"
+        />
+        <Label htmlFor="notifyTeamLeader" className="text-sm font-normal">
+          Também notificar o líder da equipe
+        </Label>
+      </div>
+    </div>
+  );
+
+  const renderIncrementCounterConfig = () => (
+    <div className="space-y-4">
+      <div className="text-sm text-muted-foreground mb-4">
+        Incrementa um campo contador do deal (ex: contactAttempts).
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="counterField">
+          Campo Contador <span className="text-destructive">*</span>
         </Label>
         <Input
-          id="propertyValue"
-          placeholder="Ex: qualified"
-          {...register('propertyValue')}
+          id="counterField"
+          placeholder="Ex: contactAttempts"
+          {...register('counterField')}
         />
-        {errors.propertyValue && (
-          <p className="text-sm text-destructive">{errors.propertyValue.message as string}</p>
+        {errors.counterField && (
+          <p className="text-sm text-destructive">{errors.counterField.message as string}</p>
         )}
+        <p className="text-xs text-muted-foreground">
+          Campos disponíveis: contactAttempts, slaViolations
+        </p>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="incrementBy">Incrementar por (opcional)</Label>
+        <Input
+          id="incrementBy"
+          type="number"
+          min="1"
+          placeholder="1"
+          {...register('incrementBy', { valueAsNumber: true })}
+        />
+        <p className="text-xs text-muted-foreground">
+          Padrão: 1
+        </p>
+      </div>
+    </div>
+  );
+
+  const renderTrackSLAViolationConfig = () => (
+    <div className="space-y-4">
+      <div className="text-sm text-muted-foreground mb-4">
+        Registra uma violação de SLA no deal e no perfil do planejador.
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="violationType">Tipo de Violação (opcional)</Label>
+        <Input
+          id="violationType"
+          placeholder="Ex: Tarefa não completada no prazo"
+          {...register('violationType')}
+        />
+      </div>
+      <div className="flex items-center space-x-2">
+        <input
+          id="notifyLeader"
+          type="checkbox"
+          {...register('notifyLeader')}
+          className="rounded border-gray-300"
+        />
+        <Label htmlFor="notifyLeader" className="text-sm font-normal">
+          Notificar líder da equipe
+        </Label>
+      </div>
+    </div>
+  );
+
+  const renderLogActivityConfig = () => (
+    <div className="space-y-4">
+      <div className="text-sm text-muted-foreground mb-4">
+        Registra uma atividade no histórico do deal.
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="activityType">
+          Tipo de Atividade <span className="text-destructive">*</span>
+        </Label>
+        <Input
+          id="activityType"
+          placeholder="Ex: email_sent, call_made, meeting_scheduled"
+          {...register('activityType')}
+        />
+        {errors.activityType && (
+          <p className="text-sm text-destructive">{errors.activityType.message as string}</p>
+        )}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="activityNotes">Notas (opcional)</Label>
+        <Textarea
+          id="activityNotes"
+          placeholder="Detalhes da atividade..."
+          rows={3}
+          {...register('activityNotes')}
+        />
       </div>
     </div>
   );
@@ -419,18 +816,39 @@ export function StepConfigDialog({
 
   const renderConfigForm = () => {
     switch (stepType) {
-      case 'delay':
-        return renderDelayConfig();
+      case 'wait':
+        return renderWaitConfig();
       case 'send_email':
         return renderEmailConfig();
       case 'send_whatsapp':
         return renderWhatsAppConfig();
       case 'create_task':
         return renderTaskConfig();
-      case 'update_property':
-        return renderUpdatePropertyConfig();
       case 'webhook':
         return renderWebhookConfig();
+      case 'assign_round_robin':
+        return renderAssignRoundRobinConfig();
+      case 'create_deal':
+        return renderCreateDealConfig();
+      case 'update_deal':
+        return renderUpdateDealConfig();
+      case 'move_deal_stage':
+        return renderMoveDealStageConfig();
+      case 'send_notification':
+        return renderSendNotificationConfig();
+      case 'increment_counter':
+        return renderIncrementCounterConfig();
+      case 'track_sla_violation':
+        return renderTrackSLAViolationConfig();
+      case 'log_activity':
+        return renderLogActivityConfig();
+      case 'complete_task':
+      case 'conditional':
+        return (
+          <div className="text-center py-6 text-muted-foreground">
+            Este passo não requer configuração adicional.
+          </div>
+        );
       default:
         return (
           <div className="text-center py-6 text-muted-foreground">
@@ -444,26 +862,39 @@ export function StepConfigDialog({
 
   const getTitle = () => {
     const titles: Record<WorkflowStepType, string> = {
-      delay: 'Configurar Atraso',
+      wait: 'Configurar Aguardar',
       send_email: 'Configurar Email',
       send_whatsapp: 'Configurar WhatsApp',
       create_task: 'Configurar Tarefa',
-      update_property: 'Atualizar Propriedade',
-      branch: 'Configurar Ramificação',
+      complete_task: 'Completar Tarefa',
       webhook: 'Configurar Webhook',
-      add_to_list: 'Adicionar à Lista',
-      remove_from_list: 'Remover da Lista',
-    };
+      assign_round_robin: 'Configurar Atribuição Round-Robin',
+      create_deal: 'Configurar Criação de Deal',
+      update_deal: 'Configurar Atualização de Deal',
+      move_deal_stage: 'Configurar Mudança de Etapa',
+      send_notification: 'Configurar Notificação',
+      increment_counter: 'Configurar Contador',
+      track_sla_violation: 'Configurar Violação de SLA',
+      log_activity: 'Configurar Registro de Atividade',
+      conditional: 'Configurar Condicional',
+    } as any;
     return titles[stepType] || 'Configurar Passo';
   };
 
   const hasConfigForm = [
-    'delay',
+    'wait',
     'send_email',
     'send_whatsapp',
     'create_task',
-    'update_property',
     'webhook',
+    'assign_round_robin',
+    'create_deal',
+    'update_deal',
+    'move_deal_stage',
+    'send_notification',
+    'increment_counter',
+    'track_sla_violation',
+    'log_activity',
   ].includes(stepType);
 
   return (
