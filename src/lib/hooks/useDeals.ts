@@ -55,7 +55,10 @@ export function useDeals(
 ) {
   return useQuery({
     queryKey: dealKeys.list(filters),
-    queryFn: () => getDeals(filters, pageLimit, startAfterDoc),
+    queryFn: async () => {
+      const result = await getDeals(filters, pageLimit, startAfterDoc);
+      return result.deals;
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
@@ -317,7 +320,8 @@ export function useDealStats(ownerId?: string) {
   return useQuery({
     queryKey: [...dealKeys.all, 'stats', ownerId],
     queryFn: async () => {
-      const deals = await getDeals(filters, 1000);
+      const result = await getDeals(filters, 1000);
+      const deals = result.deals;
 
       const totalValue = deals.reduce((sum, d) => sum + (d.value || 0), 0);
       const wonDeals = deals.filter(d => d.status === 'won');

@@ -49,7 +49,10 @@ export function useContacts(
 ) {
   return useQuery({
     queryKey: contactKeys.list(filters),
-    queryFn: () => getContacts(filters, pageLimit, startAfterDoc),
+    queryFn: async () => {
+      const result = await getContacts(filters, pageLimit, startAfterDoc);
+      return result.contacts;
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
   });
@@ -297,7 +300,8 @@ export function useContactStats(ownerId?: string) {
   return useQuery({
     queryKey: [...contactKeys.all, 'stats', ownerId],
     queryFn: async () => {
-      const contacts = await getContacts(filters, 1000);
+      const result = await getContacts(filters, 1000);
+      const contacts = result.contacts;
 
       const stats = {
         total: contacts.length,

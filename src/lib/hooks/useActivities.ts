@@ -60,7 +60,10 @@ export function useActivities(
 ) {
   return useQuery({
     queryKey: activityKeys.list(filters),
-    queryFn: () => getActivities(filters, pageLimit, startAfterDoc),
+    queryFn: async () => {
+      const result = await getActivities(filters, pageLimit, startAfterDoc);
+      return result.activities;
+    },
     staleTime: 3 * 60 * 1000, // 3 minutes
   });
 }
@@ -409,7 +412,8 @@ export function useActivityStats(ownerId?: string) {
   return useQuery({
     queryKey: [...activityKeys.all, 'stats', ownerId],
     queryFn: async () => {
-      const activities = await getActivities(filters, 1000);
+      const result = await getActivities(filters, 1000);
+      const activities = result.activities;
 
       const stats = {
         total: activities.length,
