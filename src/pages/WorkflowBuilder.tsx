@@ -27,9 +27,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Play } from "lucide-react";
+import { ArrowLeft, Save, Play, Settings } from "lucide-react";
 import { useWorkflow, useCreateWorkflow, useUpdateWorkflow } from "@/lib/hooks/useWorkflows";
-import type { CreateWorkflowInput, WorkflowStepType, WorkflowTriggerType } from "@/lib/types/workflow.types";
+import { useAuth } from "@/contexts/AuthContext";
+import { StepConfigDialog } from "@/components/workflows/StepConfigDialog";
+import type { CreateWorkflowInput, WorkflowStepType, WorkflowTriggerType, StepConfig } from "@/lib/types/workflow.types";
 
 const nodeTypes = {
   // We could add custom node components here
@@ -48,11 +50,12 @@ const stepTypeOptions: { value: WorkflowStepType; label: string }[] = [
 ];
 
 const triggerTypeOptions: { value: WorkflowTriggerType; label: string }[] = [
-  { value: "manual", label: "Manual" },
-  { value: "form_submit", label: "Envio de Formulário" },
-  { value: "property_change", label: "Mudança de Propriedade" },
-  { value: "list_membership", label: "Adição à Lista" },
+  { value: "manual_enrollment", label: "Inscrição Manual" },
+  { value: "contact_created", label: "Contato Criado" },
+  { value: "contact_property_change", label: "Mudança de Propriedade do Contato" },
   { value: "deal_stage_change", label: "Mudança de Estágio do Deal" },
+  { value: "form_submission", label: "Envio de Formulário" },
+  { value: "email_event", label: "Evento de Email" },
   { value: "scheduled", label: "Agendado" },
 ];
 
@@ -60,6 +63,7 @@ export default function WorkflowBuilder() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = Boolean(id);
+  const { userDoc } = useAuth();
 
   const { data: workflow } = useWorkflow(id || "");
   const createWorkflow = useCreateWorkflow();
@@ -68,12 +72,13 @@ export default function WorkflowBuilder() {
   // Workflow metadata
   const [workflowName, setWorkflowName] = useState("");
   const [workflowDescription, setWorkflowDescription] = useState("");
-  const [triggerType, setTriggerType] = useState<WorkflowTriggerType>("manual");
+  const [triggerType, setTriggerType] = useState<WorkflowTriggerType>("manual_enrollment");
 
   // React Flow state
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
 
   // Load workflow data when editing
   useEffect(() => {
@@ -163,6 +168,20 @@ export default function WorkflowBuilder() {
     toast.success("Passo removido");
   };
 
+  const saveStepConfig = (config: StepConfig) => {
+    if (!selectedNode) return;
+
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id === selectedNode.id
+          ? { ...node, data: { ...node.data, config } }
+          : node
+      )
+    );
+
+    toast.success("Configuração salva");
+  };
+
   const handleSave = async (status: "draft" | "active" = "draft") => {
     if (!workflowName.trim()) {
       toast.error("Nome do workflow é obrigatório");
@@ -174,6 +193,11 @@ export default function WorkflowBuilder() {
       return;
     }
 
+    if (!userDoc?.id) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
+
     try {
       const workflowData: CreateWorkflowInput = {
         name: workflowName,
@@ -181,25 +205,26 @@ export default function WorkflowBuilder() {
         status,
         trigger: {
           type: triggerType,
-          config: {},
+          conditions: {
+            operator: 'AND',
+            filters: [],
+          },
         },
         steps: nodes.map((node, index) => ({
-          id: node.id,
           type: node.data.stepType as WorkflowStepType,
-          name: node.data.label,
           config: node.data.config || {},
           order: index,
         })),
         enrollmentSettings: {
-          allowReenrollment: false,
-          enrollmentCriteria: {},
-          unenrollmentCriteria: {},
+          allowReEnrollment: false,
+          suppressForContacts: [],
         },
+        createdBy: userDoc.id,
       };
 
       if (isEditing && id) {
         await updateWorkflow.mutateAsync({
-          id,
+          workflowId: id,
           data: workflowData,
         });
         toast.success("Workflow atualizado com sucesso!");
@@ -322,7 +347,16 @@ export default function WorkflowBuilder() {
                   <CardTitle>Passo Selecionado</CardTitle>
                   <CardDescription>{selectedNode.data.label}</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setConfigDialogOpen(true)}
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Configurar Passo
+                  </Button>
                   <Button
                     variant="destructive"
                     size="sm"
@@ -358,6 +392,17 @@ export default function WorkflowBuilder() {
             </ReactFlow>
           </div>
         </div>
+
+        {/* Step Configuration Dialog */}
+        {selectedNode && (
+          <StepConfigDialog
+            open={configDialogOpen}
+            onOpenChange={setConfigDialogOpen}
+            stepType={selectedNode.data.stepType as WorkflowStepType}
+            config={selectedNode.data.config || {}}
+            onSave={saveStepConfig}
+          />
+        )}
       </div>
     </CrmLayout>
   );
