@@ -15,7 +15,7 @@ import {
 } from 'firebase/auth';
 import { auth } from './config';
 import { User, CreateUserInput } from '../types';
-import { createDocument, getDocument } from './firestore';
+import { setDocument, getDocument } from './firestore';
 
 /**
  * Sign up a new user
@@ -58,10 +58,8 @@ export async function signUp(
       userDoc.avatar = userData.avatar;
     }
 
-    await createDocument('users', {
-      ...userDoc,
-      id: user.uid,
-    });
+    // Create user document with the UID as document ID
+    await setDocument('users', user.uid, userDoc);
 
     return { user, userId: user.uid };
   } catch (error: any) {
