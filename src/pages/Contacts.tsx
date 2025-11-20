@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { CrmLayout } from "@/components/CrmLayout";
+import { CreateContactDialog } from "@/components/contacts/CreateContactDialog";
 import { useContacts, useContactStats } from "@/lib/hooks/useContacts";
 import { Plus, Search, Mail, Phone, MapPin, UserPlus, Users, TrendingUp, Target } from "lucide-react";
 import type { ContactStatus } from "@/lib/types/contact.types";
@@ -41,6 +42,7 @@ const getStatusLabel = (status: ContactStatus) => {
 export default function Contacts() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<ContactStatus | "all">("all");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const { data: contacts, isLoading } = useContacts();
   const { data: stats } = useContactStats();
@@ -72,11 +74,17 @@ export default function Contacts() {
             <h1 className="text-3xl font-bold text-foreground">Contatos</h1>
             <p className="text-muted-foreground">Gerencie seus contatos e oportunidades</p>
           </div>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setCreateDialogOpen(true)}>
             <Plus className="h-4 w-4" />
             Novo Contato
           </Button>
         </div>
+
+        {/* Create Contact Dialog */}
+        <CreateContactDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+        />
 
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-4">
