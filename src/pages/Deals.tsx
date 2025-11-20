@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CrmLayout } from "@/components/CrmLayout";
+import { CreateDealDialog } from "@/components/deals/CreateDealDialog";
 import { useDeals, useDealStats } from "@/lib/hooks/useDeals";
 import { usePipelines } from "@/lib/hooks/usePipelines";
 import {
@@ -26,6 +27,7 @@ const formatCurrency = (value: number) => {
 
 export default function Deals() {
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>("");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const { data: pipelines, isLoading: loadingPipelines } = usePipelines();
   const { data: deals, isLoading: loadingDeals } = useDeals();
@@ -67,11 +69,17 @@ export default function Deals() {
               Gerencie seus funis de prospecção e vendas
             </p>
           </div>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setCreateDialogOpen(true)}>
             <Plus className="h-4 w-4" />
             Nova Negociação
           </Button>
         </div>
+
+        {/* Create Deal Dialog */}
+        <CreateDealDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+        />
 
         {/* Stats Overview */}
         <div className="grid gap-4 md:grid-cols-4">
