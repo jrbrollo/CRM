@@ -64,26 +64,49 @@ const nodeTypes = {
   workflowStep: WorkflowStepNode,
 };
 
-const stepTypeOptions: { value: WorkflowStepType; label: string }[] = [
-  { value: "delay", label: "Aguardar (Delay)" },
-  { value: "send_email", label: "Enviar Email" },
-  { value: "send_whatsapp", label: "Enviar WhatsApp" },
-  { value: "create_task", label: "Criar Tarefa" },
-  { value: "update_property", label: "Atualizar Propriedade" },
-  { value: "branch", label: "Ramificação (If/Else)" },
-  { value: "webhook", label: "Webhook" },
-  { value: "add_to_list", label: "Adicionar à Lista" },
-  { value: "remove_from_list", label: "Remover da Lista" },
+const stepTypeOptions: { value: WorkflowStepType; label: string; category: string }[] = [
+  // Deal Actions
+  { value: "assign_round_robin", label: "Atribuir Deal (Round-Robin)", category: "Deal" },
+  { value: "create_deal", label: "Criar Novo Deal", category: "Deal" },
+  { value: "update_deal", label: "Atualizar Deal", category: "Deal" },
+  { value: "move_deal_stage", label: "Mover para Etapa", category: "Deal" },
+
+  // Task Actions
+  { value: "create_task", label: "Criar Tarefa", category: "Tarefa" },
+  { value: "complete_task", label: "Completar Tarefa", category: "Tarefa" },
+
+  // Notification Actions
+  { value: "send_notification", label: "Enviar Notificação", category: "Comunicação" },
+  { value: "send_email", label: "Enviar Email", category: "Comunicação" },
+  { value: "send_whatsapp", label: "Enviar WhatsApp", category: "Comunicação" },
+
+  // Tracking Actions
+  { value: "increment_counter", label: "Incrementar Contador", category: "Rastreamento" },
+  { value: "track_sla_violation", label: "Registrar Violação de SLA", category: "Rastreamento" },
+  { value: "log_activity", label: "Registrar Atividade", category: "Rastreamento" },
+
+  // Control Actions
+  { value: "wait", label: "Aguardar (Delay)", category: "Controle" },
+  { value: "conditional", label: "Ramificação (If/Else)", category: "Controle" },
+
+  // Integration
+  { value: "webhook", label: "Webhook", category: "Integração" },
 ];
 
 const triggerTypeOptions: { value: WorkflowTriggerType; label: string }[] = [
-  { value: "manual_enrollment", label: "Inscrição Manual" },
-  { value: "contact_created", label: "Contato Criado" },
-  { value: "contact_property_change", label: "Mudança de Propriedade do Contato" },
-  { value: "deal_stage_change", label: "Mudança de Estágio do Deal" },
-  { value: "form_submission", label: "Envio de Formulário" },
-  { value: "email_event", label: "Evento de Email" },
-  { value: "scheduled", label: "Agendado" },
+  { value: "deal_created", label: "Deal Criado" },
+  { value: "deal_updated", label: "Deal Atualizado" },
+  { value: "deal_stage_changed", label: "Mudança de Etapa do Deal" },
+  { value: "deal_won", label: "Deal Ganho" },
+  { value: "deal_lost", label: "Deal Perdido" },
+  { value: "deal_stale", label: "Deal Inativo (Stale)" },
+  { value: "task_created", label: "Tarefa Criada" },
+  { value: "task_completed", label: "Tarefa Completada" },
+  { value: "task_overdue", label: "Tarefa Atrasada" },
+  { value: "task_not_completed", label: "Tarefa Não Completada (SLA)" },
+  { value: "scheduled", label: "Agendado (Horário Fixo)" },
+  { value: "recurring", label: "Recorrente (Periódico)" },
+  { value: "manual", label: "Manual" },
 ];
 
 export default function WorkflowBuilder() {
@@ -99,7 +122,7 @@ export default function WorkflowBuilder() {
   // Workflow metadata
   const [workflowName, setWorkflowName] = useState("");
   const [workflowDescription, setWorkflowDescription] = useState("");
-  const [triggerType, setTriggerType] = useState<WorkflowTriggerType>("manual_enrollment");
+  const [triggerType, setTriggerType] = useState<WorkflowTriggerType>("deal_created");
 
   // React Flow state
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -356,17 +379,30 @@ export default function WorkflowBuilder() {
                 <CardTitle>Adicionar Passos</CardTitle>
                 <CardDescription>Clique para adicionar ao workflow</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2">
-                {stepTypeOptions.map((option) => (
-                  <Button
-                    key={option.value}
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => addStep(option.value)}
-                  >
-                    {option.label}
-                  </Button>
-                ))}
+              <CardContent className="space-y-4">
+                {['Deal', 'Tarefa', 'Comunicação', 'Rastreamento', 'Controle', 'Integração'].map((category) => {
+                  const categorySteps = stepTypeOptions.filter((opt) => opt.category === category);
+                  if (categorySteps.length === 0) return null;
+
+                  return (
+                    <div key={category} className="space-y-2">
+                      <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        {category}
+                      </div>
+                      {categorySteps.map((option) => (
+                        <Button
+                          key={option.value}
+                          variant="outline"
+                          size="sm"
+                          className="w-full justify-start"
+                          onClick={() => addStep(option.value)}
+                        >
+                          {option.label}
+                        </Button>
+                      ))}
+                    </div>
+                  );
+                })}
               </CardContent>
             </Card>
 
