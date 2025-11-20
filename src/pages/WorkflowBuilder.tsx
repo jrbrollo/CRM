@@ -33,8 +33,35 @@ import { useAuth } from "@/contexts/AuthContext";
 import { StepConfigDialog } from "@/components/workflows/StepConfigDialog";
 import type { CreateWorkflowInput, WorkflowStepType, WorkflowTriggerType, StepConfig } from "@/lib/types/workflow.types";
 
+// Custom node component
+const WorkflowStepNode = ({ data, selected }: any) => {
+  const hasConfig = data.config && Object.keys(data.config).length > 0;
+
+  return (
+    <div
+      className={`px-4 py-3 rounded-lg border-2 transition-all cursor-pointer min-w-[200px] ${
+        selected
+          ? 'border-primary bg-primary/10 shadow-lg'
+          : 'border-border bg-background hover:border-primary/50 hover:shadow-md'
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex-1">
+          <div className="font-medium text-sm">{data.label}</div>
+          {hasConfig && (
+            <div className="text-xs text-muted-foreground mt-1">✓ Configurado</div>
+          )}
+        </div>
+        {selected && (
+          <Settings className="h-4 w-4 text-primary" />
+        )}
+      </div>
+    </div>
+  );
+};
+
 const nodeTypes = {
-  // We could add custom node components here
+  workflowStep: WorkflowStepNode,
 };
 
 const stepTypeOptions: { value: WorkflowStepType; label: string }[] = [
@@ -90,7 +117,7 @@ export default function WorkflowBuilder() {
       // Convert workflow steps to React Flow nodes
       const flowNodes: Node[] = workflow.steps.map((step, index) => ({
         id: step.id,
-        type: "default",
+        type: "workflowStep",
         position: { x: 250, y: 100 + index * 150 },
         data: {
           label: `${stepTypeOptions.find((opt) => opt.value === step.type)?.label || step.type}`,
@@ -126,7 +153,7 @@ export default function WorkflowBuilder() {
   const addStep = (stepType: WorkflowStepType) => {
     const newNode: Node = {
       id: `step-${Date.now()}`,
-      type: "default",
+      type: "workflowStep",
       position: {
         x: 250,
         y: 100 + nodes.length * 150,
@@ -153,7 +180,10 @@ export default function WorkflowBuilder() {
       ]);
     }
 
-    toast.success("Passo adicionado ao workflow");
+    // Auto-select the new node
+    setSelectedNode(newNode);
+
+    toast.success("Passo adicionado - clique nele para configurar");
   };
 
   const deleteSelectedNode = () => {

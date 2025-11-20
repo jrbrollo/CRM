@@ -70,6 +70,16 @@ const updatePropertyConfigSchema = z.object({
   propertyValue: z.string().min(1, 'Valor é obrigatório'),
 });
 
+const whatsappConfigSchema = z.object({
+  whatsappMessage: z.string().min(1, 'Mensagem é obrigatória').max(1000),
+});
+
+const webhookConfigSchema = z.object({
+  webhookUrl: z.string().url('URL inválida').min(1, 'URL é obrigatória'),
+  webhookMethod: z.enum(['GET', 'POST']),
+  webhookBody: z.string().optional(),
+});
+
 interface StepConfigDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -94,10 +104,14 @@ export function StepConfigDialog({
         return delayConfigSchema;
       case 'send_email':
         return emailConfigSchema;
+      case 'send_whatsapp':
+        return whatsappConfigSchema;
       case 'create_task':
         return taskConfigSchema;
       case 'update_property':
         return updatePropertyConfigSchema;
+      case 'webhook':
+        return webhookConfigSchema;
       default:
         return z.object({});
     }
@@ -333,16 +347,90 @@ export function StepConfigDialog({
     </div>
   );
 
+  const renderWhatsAppConfig = () => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="whatsappMessage">
+          Mensagem WhatsApp <span className="text-destructive">*</span>
+        </Label>
+        <Textarea
+          id="whatsappMessage"
+          placeholder="Digite a mensagem que será enviada via WhatsApp..."
+          rows={6}
+          {...register('whatsappMessage')}
+        />
+        {errors.whatsappMessage && (
+          <p className="text-sm text-destructive">{errors.whatsappMessage.message as string}</p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Máximo: 1000 caracteres. Variáveis disponíveis: {'{'}nome{'}'}, {'{'}empresa{'}'}
+        </p>
+      </div>
+    </div>
+  );
+
+  const renderWebhookConfig = () => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="webhookUrl">
+          URL do Webhook <span className="text-destructive">*</span>
+        </Label>
+        <Input
+          id="webhookUrl"
+          type="url"
+          placeholder="https://api.exemplo.com/webhook"
+          {...register('webhookUrl')}
+        />
+        {errors.webhookUrl && (
+          <p className="text-sm text-destructive">{errors.webhookUrl.message as string}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="webhookMethod">Método HTTP</Label>
+        <Select
+          value={watch('webhookMethod') || 'POST'}
+          onValueChange={(value: any) => setValue('webhookMethod', value)}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="GET">GET</SelectItem>
+            <SelectItem value="POST">POST</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="webhookBody">Body (JSON) - Opcional</Label>
+        <Textarea
+          id="webhookBody"
+          placeholder='{"key": "value"}'
+          rows={4}
+          {...register('webhookBody')}
+        />
+        <p className="text-xs text-muted-foreground">
+          Deixe vazio para GET. Para POST, use JSON válido.
+        </p>
+      </div>
+    </div>
+  );
+
   const renderConfigForm = () => {
     switch (stepType) {
       case 'delay':
         return renderDelayConfig();
       case 'send_email':
         return renderEmailConfig();
+      case 'send_whatsapp':
+        return renderWhatsAppConfig();
       case 'create_task':
         return renderTaskConfig();
       case 'update_property':
         return renderUpdatePropertyConfig();
+      case 'webhook':
+        return renderWebhookConfig();
       default:
         return (
           <div className="text-center py-6 text-muted-foreground">
@@ -369,9 +457,14 @@ export function StepConfigDialog({
     return titles[stepType] || 'Configurar Passo';
   };
 
-  const hasConfigForm = ['delay', 'send_email', 'create_task', 'update_property'].includes(
-    stepType
-  );
+  const hasConfigForm = [
+    'delay',
+    'send_email',
+    'send_whatsapp',
+    'create_task',
+    'update_property',
+    'webhook',
+  ].includes(stepType);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
