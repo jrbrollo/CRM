@@ -73,6 +73,38 @@ export interface Deal {
   isActiveClient?: boolean; // Se já é pagante (Sim/Não)
   branch?: BranchLocation; // Filial Braúna
 
+  // Workflow tracking
+  lastActivityAt?: Timestamp; // Última atividade (ligação, email, nota, mudança de etapa)
+  lastContactAttemptAt?: Timestamp; // Última tentativa de contato
+  contactAttempts?: number; // Número de tentativas de contato
+  isStale?: boolean; // Deal parado (sem atividade há muito tempo)
+  staleSince?: Timestamp; // Desde quando está parado
+
+  // SLA tracking
+  slaViolations?: number; // Número de violações de SLA
+  lastSlaViolationAt?: Timestamp;
+
+  // Client status tracking
+  clientStatus?:
+    | 'lead' // Lead inicial
+    | 'qualified' // Lead qualificado
+    | 'in_analysis' // Em análise
+    | 'active_client' // Cliente ativo
+    | 'in_assembly' // Em montagem de planejamento
+    | 'satisfied_client' // Cliente satisfeito - planejamento entregue
+    | 'inactive'; // Cliente inativo
+
+  // Loss tracking
+  lostDate?: Timestamp;
+  lostBy?: string; // User ID de quem marcou como perdido
+
+  // Renda declarada (para assignment rules)
+  declaredIncome?: number;
+
+  // Previous deal tracking (para transições entre funis)
+  previousDealId?: string; // Se veio de outro funil
+  nextDealId?: string; // Se gerou deal em outro funil
+
   // Campos customizados genéricos
   customFields?: Record<string, any>;
 }
