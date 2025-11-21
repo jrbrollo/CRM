@@ -11,6 +11,8 @@ import ReactFlow, {
   Background,
   BackgroundVariant,
   Panel,
+  Handle,
+  Position,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { CrmLayout } from "@/components/CrmLayout";
@@ -38,25 +40,43 @@ const WorkflowStepNode = ({ data, selected }: any) => {
   const hasConfig = data.config && Object.keys(data.config).length > 0;
 
   return (
-    <div
-      className={`px-4 py-3 rounded-lg border-2 transition-all cursor-pointer min-w-[200px] ${
-        selected
-          ? 'border-primary bg-primary/10 shadow-lg'
-          : 'border-border bg-background hover:border-primary/50 hover:shadow-md'
-      }`}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex-1">
-          <div className="font-medium text-sm">{data.label}</div>
-          {hasConfig && (
-            <div className="text-xs text-muted-foreground mt-1">✓ Configurado</div>
+    <>
+      {/* Handle for incoming connections (top) */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{ background: '#555' }}
+        isConnectable={true}
+      />
+
+      <div
+        className={`px-4 py-3 rounded-lg border-2 transition-all cursor-pointer min-w-[200px] ${
+          selected
+            ? 'border-primary bg-primary/10 shadow-lg'
+            : 'border-border bg-background hover:border-primary/50 hover:shadow-md'
+        }`}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex-1">
+            <div className="font-medium text-sm">{data.label}</div>
+            {hasConfig && (
+              <div className="text-xs text-muted-foreground mt-1">✓ Configurado</div>
+            )}
+          </div>
+          {selected && (
+            <Settings className="h-4 w-4 text-primary" />
           )}
         </div>
-        {selected && (
-          <Settings className="h-4 w-4 text-primary" />
-        )}
       </div>
-    </div>
+
+      {/* Handle for outgoing connections (bottom) */}
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        style={{ background: '#555' }}
+        isConnectable={true}
+      />
+    </>
   );
 };
 

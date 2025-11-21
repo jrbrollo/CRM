@@ -6,7 +6,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { collection, query, getDocs, orderBy, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase/config';
 
 export interface User {
   id: string;
