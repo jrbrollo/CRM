@@ -16,9 +16,17 @@ export { onContactCreated, onContactUpdated } from "./automation/triggers";
 export { onDealStageChange } from "./automation/triggers";
 export { onWorkflowEnrollment } from "./automation/triggers";
 
-// Export workflow execution
+// Export workflow execution (legacy)
 export { executeWorkflowStep } from "./automation/workflowEngine";
 export { processDelayedStep } from "./automation/scheduler";
+
+// Export new enterprise workflow engine
+export { workflowExecutionEngine } from "./engine/workflowEngine";
+export {
+  workflowScheduler,
+  resumeDelayedWorkflows,
+  workflowDealWatcher,
+} from "./engine/workflowScheduler";
 
 // Export API endpoints
 export { enrollContactInWorkflow } from "./api/webhooks";
