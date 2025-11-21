@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -37,6 +37,9 @@ import type {
   UpdatePropertyConfig,
   StepConfig,
 } from '@/lib/types/workflow.types';
+import { usePipelines } from '@/lib/hooks/usePipelines';
+import { useUsers } from '@/lib/hooks/useUsers';
+import { useTeams } from '@/lib/hooks/useTeams';
 
 // Schemas for different step types
 const waitConfigSchema = z.object({
@@ -134,6 +137,16 @@ export function StepConfigDialog({
   onSave,
 }: StepConfigDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedPipelineId, setSelectedPipelineId] = useState<string>('');
+
+  // Fetch real data for selects
+  const { data: pipelines = [] } = usePipelines();
+  const { data: users = [] } = useUsers();
+  const { data: teams = [] } = useTeams();
+
+  // Get stages from selected pipeline
+  const selectedPipeline = pipelines.find(p => p.id === selectedPipelineId);
+  const availableStages = selectedPipeline?.stages || [];
 
   // Determine which schema to use
   const getSchema = () => {
@@ -391,11 +404,25 @@ export function StepConfigDialog({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="assignToUserId">Atribuir para (ID do usuário - opcional)</Label>
-        <Input
-          id="assignToUserId"
-          placeholder="Deixe vazio para atribuir ao dono do deal"
-          {...register('assignToUserId')}
+        <Label htmlFor="assignToUserId">Atribuir para (opcional)</Label>
+        <Controller
+          name="assignToUserId"
+          control={control}
+          render={({ field }) => (
+            <Select value={field.value || ''} onValueChange={field.onChange}>
+              <SelectTrigger id="assignToUserId">
+                <SelectValue placeholder="Dono do deal (padrão)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Dono do deal (padrão)</SelectItem>
+                {users.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.displayName || user.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         />
         <p className="text-xs text-muted-foreground">
           Se vazio, será atribuído automaticamente ao dono do deal
@@ -410,11 +437,25 @@ export function StepConfigDialog({
         Atribui o deal para o próximo planejador disponível usando round-robin.
       </div>
       <div className="space-y-2">
-        <Label htmlFor="assignToTeamId">ID do Time (opcional)</Label>
-        <Input
-          id="assignToTeamId"
-          placeholder="Deixe vazio para usar o time padrão"
-          {...register('assignToTeamId')}
+        <Label htmlFor="assignToTeamId">Time (opcional)</Label>
+        <Controller
+          name="assignToTeamId"
+          control={control}
+          render={({ field }) => (
+            <Select value={field.value || ''} onValueChange={field.onChange}>
+              <SelectTrigger id="assignToTeamId">
+                <SelectValue placeholder="Time padrão" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Time padrão</SelectItem>
+                {teams.map((team) => (
+                  <SelectItem key={team.id} value={team.id}>
+                    {team.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         />
         <p className="text-xs text-muted-foreground">
           Se vazio, usará o time padrão da empresa
@@ -445,12 +486,31 @@ export function StepConfigDialog({
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="dealPipelineId">
-            ID do Pipeline <span className="text-destructive">*</span>
+            Pipeline <span className="text-destructive">*</span>
           </Label>
-          <Input
-            id="dealPipelineId"
-            placeholder="ID do pipeline de destino"
-            {...register('dealPipelineId')}
+          <Controller
+            name="dealPipelineId"
+            control={control}
+            render={({ field }) => (
+              <Select
+                value={field.value || ''}
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  setSelectedPipelineId(value);
+                }}
+              >
+                <SelectTrigger id="dealPipelineId">
+                  <SelectValue placeholder="Selecione o pipeline" />
+                </SelectTrigger>
+                <SelectContent>
+                  {pipelines.map((pipeline) => (
+                    <SelectItem key={pipeline.id} value={pipeline.id}>
+                      {pipeline.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           />
           {errors.dealPipelineId && (
             <p className="text-sm text-destructive">{errors.dealPipelineId.message as string}</p>
@@ -458,12 +518,25 @@ export function StepConfigDialog({
         </div>
         <div className="space-y-2">
           <Label htmlFor="dealStageId">
-            ID da Etapa <span className="text-destructive">*</span>
+            Etapa Inicial <span className="text-destructive">*</span>
           </Label>
-          <Input
-            id="dealStageId"
-            placeholder="ID da etapa inicial"
-            {...register('dealStageId')}
+          <Controller
+            name="dealStageId"
+            control={control}
+            render={({ field }) => (
+              <Select value={field.value || ''} onValueChange={field.onChange}>
+                <SelectTrigger id="dealStageId">
+                  <SelectValue placeholder="Selecione a etapa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableStages.map((stage) => (
+                    <SelectItem key={stage.id} value={stage.id}>
+                      {stage.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           />
           {errors.dealStageId && (
             <p className="text-sm text-destructive">{errors.dealStageId.message as string}</p>
@@ -534,26 +607,49 @@ export function StepConfigDialog({
     </div>
   );
 
-  const renderMoveDealStageConfig = () => (
-    <div className="space-y-4">
-      <div className="text-sm text-muted-foreground mb-4">
-        Move o deal para outra etapa do mesmo funil.
+  const renderMoveDealStageConfig = () => {
+    // Get all stages from all pipelines
+    const allStages = pipelines.flatMap(pipeline =>
+      pipeline.stages.map(stage => ({
+        ...stage,
+        pipelineName: pipeline.name,
+      }))
+    );
+
+    return (
+      <div className="space-y-4">
+        <div className="text-sm text-muted-foreground mb-4">
+          Move o deal para outra etapa do mesmo funil.
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="targetStageId">
+            Etapa de Destino <span className="text-destructive">*</span>
+          </Label>
+          <Controller
+            name="targetStageId"
+            control={control}
+            render={({ field }) => (
+              <Select value={field.value || ''} onValueChange={field.onChange}>
+                <SelectTrigger id="targetStageId">
+                  <SelectValue placeholder="Selecione a etapa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allStages.map((stage) => (
+                    <SelectItem key={stage.id} value={stage.id}>
+                      {stage.pipelineName} → {stage.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {errors.targetStageId && (
+            <p className="text-sm text-destructive">{errors.targetStageId.message as string}</p>
+          )}
+        </div>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="targetStageId">
-          ID da Etapa de Destino <span className="text-destructive">*</span>
-        </Label>
-        <Input
-          id="targetStageId"
-          placeholder="ID da etapa"
-          {...register('targetStageId')}
-        />
-        {errors.targetStageId && (
-          <p className="text-sm text-destructive">{errors.targetStageId.message as string}</p>
-        )}
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderSendNotificationConfig = () => (
     <div className="space-y-4">
@@ -628,11 +724,25 @@ export function StepConfigDialog({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="notifyUserId">Notificar Usuário (ID - opcional)</Label>
-        <Input
-          id="notifyUserId"
-          placeholder="Deixe vazio para notificar o dono do deal"
-          {...register('notifyUserId')}
+        <Label htmlFor="notifyUserId">Notificar Usuário (opcional)</Label>
+        <Controller
+          name="notifyUserId"
+          control={control}
+          render={({ field }) => (
+            <Select value={field.value || ''} onValueChange={field.onChange}>
+              <SelectTrigger id="notifyUserId">
+                <SelectValue placeholder="Dono do deal (padrão)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Dono do deal (padrão)</SelectItem>
+                {users.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.displayName || user.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         />
       </div>
 

@@ -156,6 +156,8 @@ export default function WorkflowBuilder() {
           id: `e${flowNodes[i].id}-${flowNodes[i + 1].id}`,
           source: flowNodes[i].id,
           target: flowNodes[i + 1].id,
+          type: 'smoothstep',
+          animated: true,
         });
       }
 
@@ -199,6 +201,8 @@ export default function WorkflowBuilder() {
           id: `e${lastNode.id}-${newNode.id}`,
           source: lastNode.id,
           target: newNode.id,
+          type: 'smoothstep',
+          animated: true,
         },
       ]);
     }
@@ -447,6 +451,11 @@ export default function WorkflowBuilder() {
               onNodeClick={onNodeClick}
               nodeTypes={nodeTypes}
               fitView
+              defaultEdgeOptions={{
+                type: 'smoothstep',
+                animated: true,
+                style: { stroke: 'hsl(var(--primary))', strokeWidth: 2 },
+              }}
             >
               <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
               <Controls />
