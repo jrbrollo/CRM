@@ -6,6 +6,7 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import { sendEmail } from "../services/emailService";
 
 const db = admin.firestore();
 
@@ -106,28 +107,57 @@ async function executeSendEmail(
   entityId: string,
   entityType: string
 ): Promise<void> {
-  const { to, subject, body, templateId } = step.config;
+  const { to, subject, body, emailSubject, emailBody } = step.config;
+
+  // Support both old and new config formats
+  const finalSubject = emailSubject || subject;
+  const finalBody = emailBody || body;
 
   functions.logger.info(`Sending email to ${to}`, {
-    subject,
+    subject: finalSubject,
     entityId,
     entityType,
   });
 
-  // TODO: Integrate with email service (SendGrid, AWS SES, etc.)
-  // For now, just create an activity record
-  await db.collection("activities").add({
-    type: "email",
-    title: subject,
-    description: body,
-    entityId,
-    entityType,
-    status: "completed",
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
+  try {
+    // Send actual email via Resend
+    await sendEmail({
+      to,
+      subject: finalSubject,
+      html: finalBody,
+    });
 
-  functions.logger.info("Email activity created");
+    // Create activity record for audit trail
+    await db.collection("activities").add({
+      type: "email",
+      title: finalSubject,
+      description: finalBody,
+      entityId,
+      entityType,
+      status: "completed",
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    functions.logger.info("Email sent and activity created");
+  } catch (error) {
+    functions.logger.error("Error sending email", error);
+
+    // Log failed attempt
+    await db.collection("activities").add({
+      type: "email",
+      title: finalSubject,
+      description: finalBody,
+      entityId,
+      entityType,
+      status: "failed",
+      error: error instanceof Error ? error.message : String(error),
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    throw error;
+  }
 }
 
 /**
