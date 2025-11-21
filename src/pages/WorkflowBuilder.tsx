@@ -63,7 +63,7 @@ import {
 } from '@/lib/utils/workflowConverter';
 
 import type {
-  CreateWorkflowInput,
+  CreateWorkflowBuilderInput,
   WorkflowTriggerType,
   WorkflowStepType,
   StepConfig,
@@ -264,7 +264,7 @@ function WorkflowBuilderContent() {
     }
 
     try {
-      // Convert to backend format
+      // Convert to backend format (graph structure)
       const backendNodes = convertFlowToBackend(nodes, edges);
       const triggerNodeId = findTriggerNodeId(nodes);
 
@@ -273,9 +273,7 @@ function WorkflowBuilderContent() {
         return;
       }
 
-      // For now, convert to simple steps array (TODO: use graph format)
-      // This is a simplified conversion - the backend will need to be updated
-      // to accept the graph format with nextId/trueNextId/falseNextId
+      // Convert to simple steps array for legacy support
       const steps = nodes
         .filter((n) => n.type !== 'trigger')
         .map((node, index) => ({
@@ -284,7 +282,8 @@ function WorkflowBuilderContent() {
           order: index,
         }));
 
-      const workflowData: CreateWorkflowInput = {
+      // Create workflow with BOTH graph and legacy formats
+      const workflowData: CreateWorkflowBuilderInput = {
         name: workflowName,
         description: workflowDescription,
         status,
@@ -295,6 +294,12 @@ function WorkflowBuilderContent() {
             filters: [],
           },
         },
+        // NEW: Graph format (enables conditions with true/false paths)
+        graph: {
+          nodes: backendNodes,
+          triggerNodeId,
+        },
+        // Legacy format (for backwards compatibility)
         steps,
         enrollmentSettings: {
           allowReEnrollment: false,
