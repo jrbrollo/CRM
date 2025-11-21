@@ -1,0 +1,173 @@
+/**
+ * Custom styles for Workflow Builder
+ * Enhances React Flow nodes and handles for a professional look
+ */
+
+/* Custom handle styles - make them more visible and beautiful */
+.react-flow__handle {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.react-flow__handle:hover {
+  transform: scale(1.3);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.react-flow__handle-connecting {
+  background: hsl(var(--primary)) !important;
+  transform: scale(1.5);
+}
+
+.react-flow__handle-valid {
+  background: hsl(142.1 76.2% 36.3%) !important;
+}
+
+/* Connection line style */
+.react-flow__connection-path {
+  stroke: hsl(var(--primary));
+  stroke-width: 2;
+}
+
+/* Edge styles */
+.react-flow__edge-path {
+  stroke-width: 2;
+  transition: stroke-width 0.2s ease;
+}
+
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke-width: 3;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke-width: 3;
+  stroke: hsl(var(--primary));
+}
+
+/* Node selection ring */
+.react-flow__node.selected {
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.3);
+}
+
+/* Controls styling */
+.react-flow__controls {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  border: none;
+  background: hsl(var(--background));
+  border-bottom: 1px solid hsl(var(--border));
+  transition: all 0.2s ease;
+}
+
+.react-flow__controls-button:hover {
+  background: hsl(var(--accent));
+}
+
+.react-flow__controls-button svg {
+  fill: hsl(var(--foreground));
+}
+
+/* MiniMap styling (if needed later) */
+.react-flow__minimap {
+  background: hsl(var(--muted));
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+/* Background pattern */
+.react-flow__background {
+  background-color: hsl(var(--background));
+}
+
+/* Panel styling */
+.react-flow__panel {
+  margin: 10px;
+}
+
+/* Attribution (hide or style) */
+.react-flow__attribution {
+  opacity: 0.3;
+  font-size: 10px;
+}
+
+/* Edge label styling */
+.react-flow__edge-text {
+  font-size: 12px;
+  fill: hsl(var(--foreground));
+}
+
+/* Smooth animations */
+.react-flow__node,
+.react-flow__edge {
+  transition: opacity 0.2s ease;
+}
+
+/* Drag cursor */
+.react-flow.dragging {
+  cursor: grabbing;
+}
+
+/* Node drag cursor */
+.react-flow__node.dragging {
+  cursor: grabbing;
+  opacity: 0.7;
+}
+
+/* Selection box */
+.react-flow__selection {
+  background: hsl(var(--primary) / 0.1);
+  border: 1px solid hsl(var(--primary));
+}
+
+/* Viewport */
+.react-flow__viewport {
+  cursor: grab;
+}
+
+.react-flow__viewport.dragging {
+  cursor: grabbing;
+}
+
+/* Better focus states for accessibility */
+.react-flow__node:focus,
+.react-flow__edge:focus {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Edge button (for removing edges) */
+.react-flow__edge-textbg {
+  fill: hsl(var(--background));
+}
+
+.react-flow__edge-text {
+  fill: hsl(var(--foreground));
+}
+
+/* Pane click target area */
+.react-flow__pane {
+  cursor: default;
+}
+
+/* Handle labels for condition nodes */
+.react-flow__handle-label {
+  position: absolute;
+  font-size: 10px;
+  font-weight: 600;
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* Zoom level indicator */
+.react-flow__panel.top-center {
+  top: 10px;
+}

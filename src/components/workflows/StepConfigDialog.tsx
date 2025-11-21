@@ -121,6 +121,12 @@ const logActivityConfigSchema = z.object({
   activityNotes: z.string().optional(),
 });
 
+const conditionalConfigSchema = z.object({
+  field: z.string().min(1, 'Campo é obrigatório'),
+  operator: z.string().min(1, 'Operador é obrigatório'),
+  value: z.any().optional(),
+});
+
 interface StepConfigDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -177,6 +183,8 @@ export function StepConfigDialog({
         return trackSLAViolationConfigSchema;
       case 'log_activity':
         return logActivityConfigSchema;
+      case 'conditional':
+        return conditionalConfigSchema;
       default:
         return z.object({});
     }
@@ -854,6 +862,94 @@ export function StepConfigDialog({
     </div>
   );
 
+  const renderConditionalConfig = () => (
+    <div className="space-y-4">
+      <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+        <h4 className="font-semibold text-sm mb-2 text-blue-900 dark:text-blue-100">
+          Como Funciona
+        </h4>
+        <p className="text-xs text-blue-800 dark:text-blue-200">
+          Este nó avalia uma condição e segue por um dos dois caminhos:
+        </p>
+        <ul className="text-xs text-blue-800 dark:text-blue-200 mt-2 space-y-1 list-disc list-inside">
+          <li><strong>Sim (Verde):</strong> Se a condição for verdadeira</li>
+          <li><strong>Não (Vermelho):</strong> Se a condição for falsa</li>
+        </ul>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="field">
+          Campo para Avaliar <span className="text-destructive">*</span>
+        </Label>
+        <Input
+          id="field"
+          placeholder="Ex: value, status, contactAttempts"
+          {...register('field')}
+        />
+        {errors.field && (
+          <p className="text-sm text-destructive">{errors.field.message as string}</p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Nome do campo do deal a ser avaliado
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="operator">
+          Operador <span className="text-destructive">*</span>
+        </Label>
+        <Select
+          value={watch('operator') || 'equals'}
+          onValueChange={(value: any) => setValue('operator', value)}
+        >
+          <SelectTrigger id="operator">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="equals">É igual a (=)</SelectItem>
+            <SelectItem value="not_equals">É diferente de (≠)</SelectItem>
+            <SelectItem value="greater_than">É maior que (&gt;)</SelectItem>
+            <SelectItem value="less_than">É menor que (&lt;)</SelectItem>
+            <SelectItem value="greater_than_or_equal">É maior ou igual a (≥)</SelectItem>
+            <SelectItem value="less_than_or_equal">É menor ou igual a (≤)</SelectItem>
+            <SelectItem value="contains">Contém</SelectItem>
+            <SelectItem value="not_contains">Não contém</SelectItem>
+            <SelectItem value="is_empty">Está vazio</SelectItem>
+            <SelectItem value="is_not_empty">Não está vazio</SelectItem>
+            <SelectItem value="starts_with">Começa com</SelectItem>
+            <SelectItem value="ends_with">Termina com</SelectItem>
+          </SelectContent>
+        </Select>
+        {errors.operator && (
+          <p className="text-sm text-destructive">{errors.operator.message as string}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="value">Valor para Comparar</Label>
+        <Input
+          id="value"
+          placeholder="Ex: won, 5000, approved"
+          {...register('value')}
+        />
+        {errors.value && (
+          <p className="text-sm text-destructive">{errors.value.message as string}</p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Deixe vazio para operadores "está vazio" e "não está vazio"
+        </p>
+      </div>
+
+      <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 mt-4">
+        <p className="text-xs text-yellow-800 dark:text-yellow-200">
+          <strong>Exemplo:</strong> Campo: <code>value</code>, Operador: <code>maior que</code>, Valor: <code>5000</code>
+          <br />
+          Resultado: Segue caminho "Sim" se valor do deal for maior que 5000
+        </p>
+      </div>
+    </div>
+  );
+
   const renderWhatsAppConfig = () => (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -952,8 +1048,9 @@ export function StepConfigDialog({
         return renderTrackSLAViolationConfig();
       case 'log_activity':
         return renderLogActivityConfig();
-      case 'complete_task':
       case 'conditional':
+        return renderConditionalConfig();
+      case 'complete_task':
         return (
           <div className="text-center py-6 text-muted-foreground">
             Este passo não requer configuração adicional.
@@ -1005,6 +1102,7 @@ export function StepConfigDialog({
     'increment_counter',
     'track_sla_violation',
     'log_activity',
+    'conditional',
   ].includes(stepType);
 
   return (

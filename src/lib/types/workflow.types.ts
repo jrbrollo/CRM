@@ -402,3 +402,175 @@ export const WORKFLOW_CATEGORY_LABELS: Record<Workflow['category'], string> = {
   monitoring: 'Monitoramento',
   internal: 'Gestão Interna',
 };
+
+// ============================================================================
+// WORKFLOW BUILDER TYPES (Graph Format)
+// ============================================================================
+
+/**
+ * Graph-based workflow node (new format for visual workflow builder)
+ */
+export interface WorkflowGraphNode {
+  id: string;
+  type: WorkflowStepType;
+  nextId?: string; // For linear nodes (action, delay, trigger)
+  trueNextId?: string; // For condition nodes (true path)
+  falseNextId?: string; // For condition nodes (false path)
+  config: StepConfig;
+}
+
+/**
+ * Graph structure for visual workflows
+ */
+export interface WorkflowGraph {
+  nodes: Record<string, WorkflowGraphNode>;
+  triggerNodeId: string;
+}
+
+/**
+ * Step types for workflow builder
+ */
+export type WorkflowStepType =
+  // Deal Actions
+  | 'assign_round_robin'
+  | 'create_deal'
+  | 'update_deal'
+  | 'move_deal_stage'
+  // Task Actions
+  | 'create_task'
+  | 'complete_task'
+  // Notification Actions
+  | 'send_notification'
+  | 'send_email'
+  | 'send_whatsapp'
+  // Tracking Actions
+  | 'increment_counter'
+  | 'track_sla_violation'
+  | 'log_activity'
+  // Control Actions
+  | 'wait'
+  | 'conditional'
+  // Integration
+  | 'webhook';
+
+/**
+ * Step configuration (data edited in property editor)
+ */
+export interface StepConfig {
+  // Delay/Wait config
+  delayMinutes?: number;
+  delayHours?: number;
+  delayDays?: number;
+
+  // Email config
+  emailSubject?: string;
+  emailBody?: string;
+  fromName?: string;
+  replyTo?: string;
+
+  // Task config
+  taskTitle?: string;
+  taskDescription?: string;
+  taskType?: TaskType;
+  taskPriority?: TaskPriority;
+  taskDueInMinutes?: number;
+  taskDueInHours?: number;
+  taskDueInDays?: number;
+  assignToUserId?: string;
+
+  // WhatsApp config
+  whatsappMessage?: string;
+
+  // Webhook config
+  webhookUrl?: string;
+  webhookMethod?: 'GET' | 'POST';
+  webhookBody?: string;
+
+  // Round-robin config
+  assignToTeamId?: string;
+
+  // Create deal config
+  dealTitle?: string;
+  dealPipelineId?: string;
+  dealStageId?: string;
+  dealValue?: number;
+  linkDeals?: boolean;
+  copyFields?: boolean;
+
+  // Update deal config
+  updateFields?: string; // JSON string
+
+  // Move stage config
+  targetStageId?: string;
+
+  // Notification config
+  notificationTitle?: string;
+  notificationMessage?: string;
+  notificationType?: string;
+  notificationPriority?: string;
+  notifyUserId?: string;
+  notifyTeamLeader?: boolean;
+
+  // Counter config
+  counterField?: string;
+  incrementBy?: number;
+
+  // SLA config
+  violationType?: string;
+  notifyLeader?: boolean;
+
+  // Activity log config
+  activityType?: string;
+  activityNotes?: string;
+
+  // Conditional config
+  field?: string;
+  operator?: string;
+  value?: any;
+
+  // Generic metadata
+  [key: string]: any;
+}
+
+/**
+ * Workflow step (legacy sequential format)
+ */
+export interface WorkflowStep {
+  type: WorkflowStepType;
+  config: StepConfig;
+  order: number;
+}
+
+/**
+ * Enrollment settings
+ */
+export interface EnrollmentSettings {
+  allowReEnrollment: boolean;
+  suppressForContacts: string[];
+}
+
+/**
+ * Trigger with conditions (builder format)
+ */
+export interface WorkflowBuilderTrigger {
+  type: WorkflowTriggerType;
+  conditions: {
+    operator: 'AND' | 'OR';
+    filters: any[];
+  };
+}
+
+/**
+ * Create workflow input (workflow builder format)
+ * This extends the base format with graph support
+ */
+export interface CreateWorkflowBuilderInput {
+  name: string;
+  description?: string;
+  status: 'draft' | 'active';
+  trigger: WorkflowBuilderTrigger;
+  graph?: WorkflowGraph; // NEW: Graph format
+  steps: WorkflowStep[]; // Legacy format (for compatibility)
+  enrollmentSettings: EnrollmentSettings;
+  createdBy: string;
+}

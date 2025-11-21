@@ -1,176 +1,152 @@
-import { useState, useCallback, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+/**
+ * Workflow Builder - Visual Flow Editor
+ *
+ * Enterprise-grade workflow builder using React Flow and shadcn/ui.
+ * Features:
+ * - Drag-and-drop interface
+ * - Custom nodes with proper handles
+ * - Condition nodes with dual outputs (true/false)
+ * - Backend conversion with validation
+ * - Professional UX similar to HubSpot/Zapier
+ */
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import ReactFlow, {
-  Node,
-  Edge,
-  addEdge,
-  Connection,
-  useNodesState,
-  useEdgesState,
-  Controls,
   Background,
   BackgroundVariant,
+  Controls,
   Panel,
-  Handle,
-  Position,
-} from "reactflow";
-import "reactflow/dist/style.css";
-import { CrmLayout } from "@/components/CrmLayout";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+  ReactFlowProvider,
+  useReactFlow,
+} from 'reactflow';
+import 'reactflow/dist/style.css';
+import '@/styles/workflow-builder.css';
+
+import { CrmLayout } from '@/components/CrmLayout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { toast } from "sonner";
-import { ArrowLeft, Save, Play, Settings } from "lucide-react";
-import { useWorkflow, useCreateWorkflow, useUpdateWorkflow } from "@/lib/hooks/useWorkflows";
-import { useAuth } from "@/contexts/AuthContext";
-import { StepConfigDialog } from "@/components/workflows/StepConfigDialog";
-import type { CreateWorkflowInput, WorkflowStepType, WorkflowTriggerType, StepConfig } from "@/lib/types/workflow.types";
+} from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
+import { ArrowLeft, Save, Play, Trash2, AlertCircle } from 'lucide-react';
 
-// Custom node component
-const WorkflowStepNode = ({ data, selected }: any) => {
-  const hasConfig = data.config && Object.keys(data.config).length > 0;
+import { useAuth } from '@/contexts/AuthContext';
+import { useWorkflow, useCreateWorkflow, useUpdateWorkflow } from '@/lib/hooks/useWorkflows';
+import { useWorkflowStore } from '@/lib/stores/useWorkflowStore';
+import { nodeTypes, getNodeTypeForStep } from '@/components/workflows/CustomNodes';
+import { WorkflowSidebar } from '@/components/workflows/WorkflowSidebar';
+import { StepConfigDialog } from '@/components/workflows/StepConfigDialog';
+import {
+  validateWorkflow,
+  convertFlowToBackend,
+  findTriggerNodeId,
+  convertBackendToFlow,
+} from '@/lib/utils/workflowConverter';
 
-  return (
-    <>
-      {/* Handle for incoming connections (top) */}
-      <Handle
-        type="target"
-        position={Position.Top}
-        style={{ background: '#555' }}
-        isConnectable={true}
-      />
-
-      <div
-        className={`px-4 py-3 rounded-lg border-2 transition-all cursor-pointer min-w-[200px] ${
-          selected
-            ? 'border-primary bg-primary/10 shadow-lg'
-            : 'border-border bg-background hover:border-primary/50 hover:shadow-md'
-        }`}
-      >
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex-1">
-            <div className="font-medium text-sm">{data.label}</div>
-            {hasConfig && (
-              <div className="text-xs text-muted-foreground mt-1">✓ Configurado</div>
-            )}
-          </div>
-          {selected && (
-            <Settings className="h-4 w-4 text-primary" />
-          )}
-        </div>
-      </div>
-
-      {/* Handle for outgoing connections (bottom) */}
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        style={{ background: '#555' }}
-        isConnectable={true}
-      />
-    </>
-  );
-};
-
-const nodeTypes = {
-  workflowStep: WorkflowStepNode,
-};
-
-const stepTypeOptions: { value: WorkflowStepType; label: string; category: string }[] = [
-  // Deal Actions
-  { value: "assign_round_robin", label: "Atribuir Deal (Round-Robin)", category: "Deal" },
-  { value: "create_deal", label: "Criar Novo Deal", category: "Deal" },
-  { value: "update_deal", label: "Atualizar Deal", category: "Deal" },
-  { value: "move_deal_stage", label: "Mover para Etapa", category: "Deal" },
-
-  // Task Actions
-  { value: "create_task", label: "Criar Tarefa", category: "Tarefa" },
-  { value: "complete_task", label: "Completar Tarefa", category: "Tarefa" },
-
-  // Notification Actions
-  { value: "send_notification", label: "Enviar Notificação", category: "Comunicação" },
-  { value: "send_email", label: "Enviar Email", category: "Comunicação" },
-  { value: "send_whatsapp", label: "Enviar WhatsApp", category: "Comunicação" },
-
-  // Tracking Actions
-  { value: "increment_counter", label: "Incrementar Contador", category: "Rastreamento" },
-  { value: "track_sla_violation", label: "Registrar Violação de SLA", category: "Rastreamento" },
-  { value: "log_activity", label: "Registrar Atividade", category: "Rastreamento" },
-
-  // Control Actions
-  { value: "wait", label: "Aguardar (Delay)", category: "Controle" },
-  { value: "conditional", label: "Ramificação (If/Else)", category: "Controle" },
-
-  // Integration
-  { value: "webhook", label: "Webhook", category: "Integração" },
-];
+import type {
+  CreateWorkflowBuilderInput,
+  WorkflowTriggerType,
+  WorkflowStepType,
+  StepConfig,
+} from '@/lib/types/workflow.types';
 
 const triggerTypeOptions: { value: WorkflowTriggerType; label: string }[] = [
-  { value: "deal_created", label: "Deal Criado" },
-  { value: "deal_updated", label: "Deal Atualizado" },
-  { value: "deal_stage_changed", label: "Mudança de Etapa do Deal" },
-  { value: "deal_won", label: "Deal Ganho" },
-  { value: "deal_lost", label: "Deal Perdido" },
-  { value: "deal_stale", label: "Deal Inativo (Stale)" },
-  { value: "task_created", label: "Tarefa Criada" },
-  { value: "task_completed", label: "Tarefa Completada" },
-  { value: "task_overdue", label: "Tarefa Atrasada" },
-  { value: "task_not_completed", label: "Tarefa Não Completada (SLA)" },
-  { value: "scheduled", label: "Agendado (Horário Fixo)" },
-  { value: "recurring", label: "Recorrente (Periódico)" },
-  { value: "manual", label: "Manual" },
+  { value: 'deal_created', label: 'Deal Criado' },
+  { value: 'deal_updated', label: 'Deal Atualizado' },
+  { value: 'deal_stage_changed', label: 'Mudança de Etapa do Deal' },
+  { value: 'deal_won', label: 'Deal Ganho' },
+  { value: 'deal_lost', label: 'Deal Perdido' },
+  { value: 'deal_stale', label: 'Deal Inativo (Stale)' },
+  { value: 'task_created', label: 'Tarefa Criada' },
+  { value: 'task_completed', label: 'Tarefa Completada' },
+  { value: 'task_overdue', label: 'Tarefa Atrasada' },
+  { value: 'task_not_completed', label: 'Tarefa Não Completada (SLA)' },
+  { value: 'scheduled', label: 'Agendado (Horário Fixo)' },
+  { value: 'recurring', label: 'Recorrente (Periódico)' },
+  { value: 'manual', label: 'Manual' },
 ];
 
-export default function WorkflowBuilder() {
+function WorkflowBuilderContent() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = Boolean(id);
   const { userDoc } = useAuth();
+  const reactFlowInstance = useReactFlow();
 
-  const { data: workflow } = useWorkflow(id || "");
+  // Workflow metadata
+  const [workflowName, setWorkflowName] = useState('');
+  const [workflowDescription, setWorkflowDescription] = useState('');
+  const [triggerType, setTriggerType] = useState<WorkflowTriggerType>('deal_created');
+
+  // UI state
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [validationDialogOpen, setValidationDialogOpen] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  // Zustand store
+  const {
+    nodes,
+    edges,
+    selectedNodeId,
+    setNodes,
+    setEdges,
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    setSelectedNodeId,
+    updateNodeConfig,
+    deleteNode,
+    getSelectedNode,
+  } = useWorkflowStore();
+
+  // API hooks
+  const { data: workflow } = useWorkflow(id || '');
   const createWorkflow = useCreateWorkflow();
   const updateWorkflow = useUpdateWorkflow();
 
-  // Workflow metadata
-  const [workflowName, setWorkflowName] = useState("");
-  const [workflowDescription, setWorkflowDescription] = useState("");
-  const [triggerType, setTriggerType] = useState<WorkflowTriggerType>("deal_created");
+  // Refs
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
-  // React Flow state
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-  const [configDialogOpen, setConfigDialogOpen] = useState(false);
-
-  // Load workflow data when editing
+  // Load existing workflow data
   useEffect(() => {
     if (workflow) {
       setWorkflowName(workflow.name);
-      setWorkflowDescription(workflow.description || "");
+      setWorkflowDescription(workflow.description || '');
       setTriggerType(workflow.trigger.type);
 
-      // Convert workflow steps to React Flow nodes
-      const flowNodes: Node[] = workflow.steps.map((step, index) => ({
+      // Convert backend format to React Flow format
+      // For now, use simple sequential layout (TODO: improve with graph conversion)
+      const flowNodes = workflow.steps.map((step, index) => ({
         id: step.id,
-        type: "workflowStep",
+        type: getNodeTypeForStep(step.type),
         position: { x: 250, y: 100 + index * 150 },
         data: {
-          label: `${stepTypeOptions.find((opt) => opt.value === step.type)?.label || step.type}`,
+          label: step.type,
           stepType: step.type,
           config: step.config,
         },
       }));
 
-      // Create edges based on step order
-      const flowEdges: Edge[] = [];
+      const flowEdges = [];
       for (let i = 0; i < flowNodes.length - 1; i++) {
         flowEdges.push({
           id: `e${flowNodes[i].id}-${flowNodes[i + 1].id}`,
@@ -178,105 +154,136 @@ export default function WorkflowBuilder() {
           target: flowNodes[i + 1].id,
           type: 'smoothstep',
           animated: true,
+          style: { stroke: 'hsl(var(--primary))', strokeWidth: 2 },
         });
       }
 
       setNodes(flowNodes);
       setEdges(flowEdges);
     }
-  }, [workflow]);
+  }, [workflow, setNodes, setEdges]);
 
-  const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
+  // Handle node click
+  const onNodeClick = useCallback(
+    (_event: any, node: any) => {
+      setSelectedNodeId(node.id);
+    },
+    [setSelectedNodeId]
   );
 
-  const onNodeClick = useCallback((_event: any, node: Node) => {
-    setSelectedNode(node);
+  // Handle drag over (required for drop to work)
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
   }, []);
 
-  const addStep = (stepType: WorkflowStepType) => {
-    const newNode: Node = {
-      id: `step-${Date.now()}`,
-      type: "workflowStep",
-      position: {
-        x: 250,
-        y: 100 + nodes.length * 150,
-      },
-      data: {
-        label: stepTypeOptions.find((opt) => opt.value === stepType)?.label || stepType,
-        stepType,
-        config: {},
-      },
-    };
+  // Handle drop from sidebar
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
 
-    setNodes((nds) => [...nds, newNode]);
+      const reactFlowBounds = reactFlowWrapper.current?.getBoundingClientRect();
+      const data = event.dataTransfer.getData('application/reactflow');
 
-    // Auto-connect to previous node
-    if (nodes.length > 0) {
-      const lastNode = nodes[nodes.length - 1];
-      setEdges((eds) => [
-        ...eds,
-        {
-          id: `e${lastNode.id}-${newNode.id}`,
-          source: lastNode.id,
-          target: newNode.id,
-          type: 'smoothstep',
-          animated: true,
+      if (!data || !reactFlowBounds) return;
+
+      const { type, label } = JSON.parse(data);
+
+      // Convert screen coordinates to flow coordinates
+      const position = reactFlowInstance.screenToFlowPosition({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
+      });
+
+      // Create new node
+      const newNodeId = `node-${Date.now()}`;
+      const nodeType = getNodeTypeForStep(type as WorkflowStepType);
+
+      const newNode = {
+        id: newNodeId,
+        type: nodeType,
+        position,
+        data: {
+          label,
+          stepType: type,
+          config: {},
         },
-      ]);
+      };
+
+      setNodes([...nodes, newNode]);
+      setSelectedNodeId(newNodeId);
+
+      toast.success(`${label} adicionado - clique para configurar`);
+    },
+    [reactFlowInstance, nodes, setNodes, setSelectedNodeId]
+  );
+
+  // Save step configuration
+  const handleSaveConfig = (config: StepConfig) => {
+    if (selectedNodeId) {
+      updateNodeConfig(selectedNodeId, config);
+      setConfigDialogOpen(false);
+      toast.success('Configuração salva');
     }
-
-    // Auto-select the new node
-    setSelectedNode(newNode);
-
-    toast.success("Passo adicionado - clique nele para configurar");
   };
 
-  const deleteSelectedNode = () => {
-    if (!selectedNode) return;
-
-    setNodes((nds) => nds.filter((node) => node.id !== selectedNode.id));
-    setEdges((eds) =>
-      eds.filter((edge) => edge.source !== selectedNode.id && edge.target !== selectedNode.id)
-    );
-    setSelectedNode(null);
-
-    toast.success("Passo removido");
+  // Delete selected node
+  const handleDeleteNode = () => {
+    if (selectedNodeId) {
+      const node = getSelectedNode();
+      deleteNode(selectedNodeId);
+      toast.success(`${node?.data.label || 'Nó'} removido`);
+    }
   };
 
-  const saveStepConfig = (config: StepConfig) => {
-    if (!selectedNode) return;
-
-    setNodes((nds) =>
-      nds.map((node) =>
-        node.id === selectedNode.id
-          ? { ...node, data: { ...node.data, config } }
-          : node
-      )
-    );
-
-    toast.success("Configuração salva");
-  };
-
-  const handleSave = async (status: "draft" | "active" = "draft") => {
+  // Validate and save workflow
+  const handleSave = async (status: 'draft' | 'active' = 'draft') => {
+    // Basic validation
     if (!workflowName.trim()) {
-      toast.error("Nome do workflow é obrigatório");
+      toast.error('Nome do workflow é obrigatório');
       return;
     }
 
     if (nodes.length === 0) {
-      toast.error("Adicione pelo menos um passo ao workflow");
+      toast.error('Adicione pelo menos um nó ao workflow');
       return;
     }
 
     if (!userDoc?.id) {
-      toast.error("Usuário não autenticado");
+      toast.error('Usuário não autenticado');
+      return;
+    }
+
+    // Validate workflow structure
+    const validation = validateWorkflow(nodes, edges);
+
+    if (!validation.isValid) {
+      setValidationErrors(validation.errors.map((e) => e.message));
+      setValidationDialogOpen(true);
       return;
     }
 
     try {
-      const workflowData: CreateWorkflowInput = {
+      // Convert to backend format (graph structure)
+      const backendNodes = convertFlowToBackend(nodes, edges);
+      const triggerNodeId = findTriggerNodeId(nodes);
+
+      if (!triggerNodeId) {
+        toast.error('Workflow deve ter um nó Gatilho');
+        return;
+      }
+
+      // Convert to simple steps array for legacy support
+      const steps = nodes
+        .filter((n) => n.type !== 'trigger')
+        .map((node, index) => ({
+          type: node.data.stepType as WorkflowStepType,
+          config: node.data.config || {},
+          order: index,
+        }));
+
+      // Create workflow with BOTH graph and legacy formats
+      const workflowData: CreateWorkflowBuilderInput = {
         name: workflowName,
         description: workflowDescription,
         status,
@@ -287,11 +294,13 @@ export default function WorkflowBuilder() {
             filters: [],
           },
         },
-        steps: nodes.map((node, index) => ({
-          type: node.data.stepType as WorkflowStepType,
-          config: node.data.config || {},
-          order: index,
-        })),
+        // NEW: Graph format (enables conditions with true/false paths)
+        graph: {
+          nodes: backendNodes,
+          triggerNodeId,
+        },
+        // Legacy format (for backwards compatibility)
+        steps,
         enrollmentSettings: {
           allowReEnrollment: false,
           suppressForContacts: [],
@@ -304,17 +313,19 @@ export default function WorkflowBuilder() {
           workflowId: id,
           data: workflowData,
         });
-        toast.success("Workflow atualizado com sucesso!");
+        toast.success('Workflow atualizado com sucesso!');
       } else {
         await createWorkflow.mutateAsync(workflowData);
-        toast.success("Workflow criado com sucesso!");
-        navigate("/workflows");
+        toast.success('Workflow criado com sucesso!');
+        navigate('/workflows');
       }
     } catch (error) {
-      console.error("Error saving workflow:", error);
-      toast.error("Erro ao salvar workflow");
+      console.error('Error saving workflow:', error);
+      toast.error('Erro ao salvar workflow');
     }
   };
+
+  const selectedNode = getSelectedNode();
 
   return (
     <CrmLayout>
@@ -323,25 +334,25 @@ export default function WorkflowBuilder() {
         <div className="border-b bg-background p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" onClick={() => navigate("/workflows")}>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/workflows')}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Voltar
               </Button>
               <div>
                 <h1 className="text-2xl font-bold">
-                  {isEditing ? "Editar Workflow" : "Novo Workflow"}
+                  {isEditing ? 'Editar Workflow' : 'Novo Workflow'}
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  Arraste passos para o canvas e conecte-os para criar seu fluxo
+                  Arraste componentes da sidebar e conecte-os para criar seu fluxo
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => handleSave("draft")}>
+              <Button variant="outline" onClick={() => handleSave('draft')}>
                 <Save className="h-4 w-4 mr-2" />
                 Salvar Rascunho
               </Button>
-              <Button onClick={() => handleSave("active")}>
+              <Button onClick={() => handleSave('active')}>
                 <Play className="h-4 w-4 mr-2" />
                 Salvar e Ativar
               </Button>
@@ -349,13 +360,45 @@ export default function WorkflowBuilder() {
           </div>
         </div>
 
-        <div className="flex-1 flex">
-          {/* Sidebar - Workflow Settings */}
-          <div className="w-80 border-r bg-muted/30 p-4 overflow-y-auto">
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left Sidebar - Components */}
+          <WorkflowSidebar />
+
+          {/* Canvas */}
+          <div className="flex-1 relative" ref={reactFlowWrapper}>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onNodeClick={onNodeClick}
+              onDrop={onDrop}
+              onDragOver={onDragOver}
+              nodeTypes={nodeTypes}
+              fitView
+              defaultEdgeOptions={{
+                type: 'smoothstep',
+                animated: true,
+                style: { stroke: 'hsl(var(--primary))', strokeWidth: 2 },
+              }}
+            >
+              <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+              <Controls />
+              <Panel position="top-center" className="bg-background/90 backdrop-blur-sm rounded-lg p-2 border shadow-sm">
+                <div className="text-sm font-medium">
+                  {nodes.length} {nodes.length === 1 ? 'nó' : 'nós'} no workflow
+                </div>
+              </Panel>
+            </ReactFlow>
+          </div>
+
+          {/* Right Sidebar - Properties */}
+          <div className="w-80 border-l bg-muted/30 p-4 overflow-y-auto">
             <Card>
               <CardHeader>
                 <CardTitle>Configurações</CardTitle>
-                <CardDescription>Configure seu workflow</CardDescription>
+                <CardDescription>Propriedades do workflow</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -381,7 +424,10 @@ export default function WorkflowBuilder() {
 
                 <div className="space-y-2">
                   <Label htmlFor="trigger-type">Gatilho (Trigger)</Label>
-                  <Select value={triggerType} onValueChange={(value: any) => setTriggerType(value)}>
+                  <Select
+                    value={triggerType}
+                    onValueChange={(value: any) => setTriggerType(value)}
+                  >
                     <SelectTrigger id="trigger-type">
                       <SelectValue />
                     </SelectTrigger>
@@ -397,44 +443,11 @@ export default function WorkflowBuilder() {
               </CardContent>
             </Card>
 
-            {/* Add Steps */}
-            <Card className="mt-4">
-              <CardHeader>
-                <CardTitle>Adicionar Passos</CardTitle>
-                <CardDescription>Clique para adicionar ao workflow</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {['Deal', 'Tarefa', 'Comunicação', 'Rastreamento', 'Controle', 'Integração'].map((category) => {
-                  const categorySteps = stepTypeOptions.filter((opt) => opt.category === category);
-                  if (categorySteps.length === 0) return null;
-
-                  return (
-                    <div key={category} className="space-y-2">
-                      <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        {category}
-                      </div>
-                      {categorySteps.map((option) => (
-                        <Button
-                          key={option.value}
-                          variant="outline"
-                          size="sm"
-                          className="w-full justify-start"
-                          onClick={() => addStep(option.value)}
-                        >
-                          {option.label}
-                        </Button>
-                      ))}
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-
-            {/* Selected Node Details */}
+            {/* Selected Node Card */}
             {selectedNode && (
               <Card className="mt-4">
                 <CardHeader>
-                  <CardTitle>Passo Selecionado</CardTitle>
+                  <CardTitle>Nó Selecionado</CardTitle>
                   <CardDescription>{selectedNode.data.label}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
@@ -444,61 +457,69 @@ export default function WorkflowBuilder() {
                     className="w-full"
                     onClick={() => setConfigDialogOpen(true)}
                   >
-                    <Settings className="h-4 w-4 mr-2" />
-                    Configurar Passo
+                    Configurar
                   </Button>
                   <Button
                     variant="destructive"
                     size="sm"
                     className="w-full"
-                    onClick={deleteSelectedNode}
+                    onClick={handleDeleteNode}
                   >
-                    Remover Passo
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Remover
                   </Button>
                 </CardContent>
               </Card>
             )}
           </div>
-
-          {/* React Flow Canvas */}
-          <div className="flex-1">
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onNodeClick={onNodeClick}
-              nodeTypes={nodeTypes}
-              fitView
-              defaultEdgeOptions={{
-                type: 'smoothstep',
-                animated: true,
-                style: { stroke: 'hsl(var(--primary))', strokeWidth: 2 },
-              }}
-            >
-              <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
-              <Controls />
-              <Panel position="top-center" className="bg-background/80 backdrop-blur-sm rounded-lg p-2 border">
-                <div className="text-sm font-medium">
-                  {nodes.length} {nodes.length === 1 ? "passo" : "passos"} no workflow
-                </div>
-              </Panel>
-            </ReactFlow>
-          </div>
         </div>
 
-        {/* Step Configuration Dialog */}
+        {/* Configuration Dialog */}
         {selectedNode && (
           <StepConfigDialog
             open={configDialogOpen}
             onOpenChange={setConfigDialogOpen}
             stepType={selectedNode.data.stepType as WorkflowStepType}
             config={selectedNode.data.config || {}}
-            onSave={saveStepConfig}
+            onSave={handleSaveConfig}
           />
         )}
+
+        {/* Validation Error Dialog */}
+        <AlertDialog open={validationDialogOpen} onOpenChange={setValidationDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-destructive" />
+                Erros de Validação
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-2">
+                  <p>Corrija os seguintes problemas antes de salvar:</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    {validationErrors.map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={() => setValidationDialogOpen(false)}>
+                Entendi
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </CrmLayout>
+  );
+}
+
+export default function WorkflowBuilder() {
+  return (
+    <ReactFlowProvider>
+      <WorkflowBuilderContent />
+    </ReactFlowProvider>
   );
 }
